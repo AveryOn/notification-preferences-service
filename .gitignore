@@ -29,6 +29,8 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+env.development
+env.production
 
 # TypeScript
 

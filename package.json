@@ -12,11 +12,13 @@
     "build": "tsup",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky",
+    "prepare": "node .husky/install.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "dev:docker": "docker compose --env-file .env.development -f compose.development.yaml up --build",
+    "prod:docker": "docker compose --env-file .env.production -f compose.production.yaml up --build -d"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
