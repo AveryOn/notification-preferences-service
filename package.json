@@ -1,0 +1,29 @@
+{
+  "name": "notification-preference-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AveryOn/notification-preferences-service.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AveryOn/notification-preferences-service/issues"
+  },
+  "homepage": "https://github.com/AveryOn/notification-preferences-service#readme",
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
