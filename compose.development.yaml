@@ -14,7 +14,7 @@ services:
     command: npm run dev
 
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - '${APP_PORT:-3000}:3000'
 
     volumes:
       - .:/app
@@ -35,7 +35,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
 
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
 
     volumes:
       - postgres-development-data:/var/lib/postgresql/data
