@@ -42,8 +42,8 @@
 <!-- - git-хуки для безопасности CI -->
 
 - env.example + zod валидацию переменных
-- import aliases
-<!-- - Docker окружение -->
+  <!-- - import aliases -->
+  <!-- - Docker окружение -->
 - окружения тестирование под Vitest
 
 ## Express Server:
