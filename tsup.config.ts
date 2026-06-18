@@ -12,5 +12,5 @@ export default defineConfig({
   bundle: true,
   minify: false,
   dts: false,
-  treeshake: true
+  treeshake: true,
 });

@@ -24,20 +24,22 @@
 <!-- - Написать комментарий в репозитории гитхаба, -->
 <!-- - проставить теги -->
 <!-- - выделить ветки main и dev -->
+
 - придерживаться git flow при работе
 
 ## Developer Experience:
 
 <!-- - .nvmrc -->
 <!-- - .gitigonre -->
-- Typescript + tsx
-- ESM бандлер + Режим проекта - ESM
-- HMR + dev сервер
+<!-- - Typescript + tsx -->
+<!-- - ESM бандлер + Режим проекта - ESM -->
+<!-- - HMR + dev сервер -->
 <!-- - editorconfig -->
+
 - EsLint
 - formatter (prettier)
 - vscode settings file (сохранение + форматироввание по ctrl + s)
-- git-хуки для безопасности CI
+<!-- - git-хуки для безопасности CI -->
 - env.example + zod валидацию переменных
 - import aliases
 - Docker окружение
