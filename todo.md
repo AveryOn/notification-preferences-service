@@ -29,7 +29,7 @@
 ## Developer Experience:
 
 <!-- - .nvmrc -->
-- .gitigonre
+<!-- - .gitigonre -->
 - Typescript + tsx
 - ESM бандлер + Режим проекта - ESM
 - HMR + dev сервер

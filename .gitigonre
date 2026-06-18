@@ -1,21 +1,13 @@
-# Dependencies
-
 node_modules/
-
-# Build artifacts
 
 dist/
 build/
 coverage/
 .nyc_output/
 
-# Runtime
-
 *.pid
 *.pid.lock
 *.seed
-
-# Logs
 
 logs/
 *.log
@@ -24,26 +16,16 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Environment variables
-
 .env
 .env.*
 !.env.example
 
-# TypeScript
-
 *.tsbuildinfo
-
-# Testing
 
 .vitest/
 test-results/
 
-# Drizzle
-
 drizzle/meta/_journal.json
-
-# IDE
 
 .idea/
 .vscode/*
@@ -52,17 +34,11 @@ drizzle/meta/_journal.json
 *.swp
 *.swo
 
-# Operating systems
-
 .DS_Store
 Thumbs.db
 
-# Docker
-
 docker-data/
 postgres-data/
-
-# Temporary files
 
 tmp/
 temp/
