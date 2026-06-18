@@ -20,20 +20,20 @@
 
 ## GitHub:
 
-- создать репозиторий
-- Написать комментарий в репозитории гитхаба,
-- проставить теги
-- выделить ветки main и dev
+<!-- - создать репозиторий -->
+<!-- - Написать комментарий в репозитории гитхаба, -->
+<!-- - проставить теги -->
+<!-- - выделить ветки main и dev -->
 - придерживаться git flow при работе
 
 ## Developer Experience:
 
-- .nvmrc
+<!-- - .nvmrc -->
 - .gitigonre
 - Typescript + tsx
 - ESM бандлер + Режим проекта - ESM
 - HMR + dev сервер
-- editorconfig
+<!-- - editorconfig -->
 - EsLint
 - formatter (prettier)
 - vscode settings file (сохранение + форматироввание по ctrl + s)
