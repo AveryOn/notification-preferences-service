@@ -48,10 +48,10 @@
 
 ## Express Server:
 
-- настроить CORS с учетом окружения (dev | prod)
-- настроить urlencoded + body parser мидлвары
-- настроить helmet (также активация по флагу isProduction)
-- настроить trust proxy для работы за reverse proxy
+<!-- - настроить CORS с учетом окружения (dev | prod) -->
+<!-- - настроить urlencoded + body parser мидлвары -->
+<!-- - настроить helmet (также активация по флагу isProduction) -->
+<!-- - настроить trust proxy для работы за reverse proxy -->
 
 ## Развертываение первого архитектурного среза
 

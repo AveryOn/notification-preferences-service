@@ -8,6 +8,7 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
+    "allowSyntheticDefaultImports": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,

@@ -1,10 +1,10 @@
-import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
 
-import { env } from '~/config/env'
+import { env } from '~/core/config/env'
 import { httpLoggerMiddleware } from '~/infra/transport/http/http-logger.middleware'
 import { logger } from '~/infra/logger/logger.factory'
+import cors from '~/core/plugins/cors'
 
 const app = express()
 

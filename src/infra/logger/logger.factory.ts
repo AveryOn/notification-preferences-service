@@ -1,6 +1,6 @@
 import pino from 'pino'
 
-import { env } from '~/config/env'
+import { env } from '~/core/config/env'
 import { PinoLoggerAdapter } from '~/infra/logger/pino-logger.adapter'
 import type { LoggerPort } from '~/shared/logger/logger.port'
 
