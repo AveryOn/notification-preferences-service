@@ -3,7 +3,7 @@ import {
   HTTP_SERVER_TOKEN,
   LOGGER_TOKEN
 } from '~/core/app/app.tokens'
-import { env } from '~/core/config/env'
+import { env } from '~/env'
 import type { DiProvider } from '~/core/di/types'
 import { databaseProviders } from '~/infra/database/database.providers'
 import { logger } from '~/infra/logger/logger.factory'

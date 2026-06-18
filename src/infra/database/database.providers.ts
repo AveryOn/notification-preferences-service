@@ -1,7 +1,7 @@
 import { Pool } from 'pg'
 
 import { ENV_TOKEN, LOGGER_TOKEN } from '~/core/app/app.tokens'
-import type { env } from '~/core/config/env'
+import type { env } from '~/env'
 import { DatabasePort } from '~/infra/database/ports/database.port'
 import type { DiProvider } from '~/core/di/types'
 import type { Database } from '~/infra/database/drizzle/index'
