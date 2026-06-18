@@ -1,4 +1,9 @@
-export type DiToken = string | symbol
+export type DiToken =
+  | string
+  | symbol
+  | {
+      readonly prototype: unknown
+    }
 
 export type ClassConstructor<T = unknown> = new (
   ...dependencies: any[]

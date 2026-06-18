@@ -17,8 +17,16 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "dev:docker": "docker compose --env-file .env.development -f compose.development.yaml up --build",
-    "prod:docker": "docker compose --env-file .env.production -f compose.production.yaml up --build -d"
+    "dev:docker:up": "docker compose --env-file .env.development -f compose.development.yaml up --build",
+    "dev:docker:down": "docker compose --env-file .env.development -f compose.development.yaml down",
+    "dev:docker:renew": "docker compose --env-file .env.development -f compose.development.yaml up --build --renew-anon-volumes",
+    "prod:docker:up": "docker compose --env-file .env.production -f compose.production.yaml up --build -d",
+    "prod:docker:down": "docker compose --env-file .env.production -f compose.production.yaml down",
+    "prod:docker:renew": "docker compose --env-file .env.production -f compose.production.yaml up --build --renew-anon-volumes -d",
+    "db:generate": "NODE_ENV=development drizzle-kit generate",
+    "db:migrate": "NODE_ENV=development drizzle-kit migrate",
+    "db:studio": "NODE_ENV=development drizzle-kit studio",
+    "db:migrate:production": "NODE_ENV=production drizzle-kit migrate"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
