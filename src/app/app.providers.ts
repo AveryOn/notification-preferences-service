@@ -8,10 +8,14 @@ import type { DiProvider } from '~/core/di/types'
 import { databaseProviders } from '~/infra/database/database.providers'
 import { logger } from '~/infra/logger/logger.factory'
 import { HttpServer } from '~/infra/transport/http/http.server'
+import { preferencesProviders } from '~/modules/v1/preferences/preferences.module'
+import { quietHoursProviders } from '~/modules/v1/quiet-hours/quiet-hours.module'
 
 export const appProviders: DiProvider[] = [
   { token: ENV_TOKEN, useValue: env },
   { token: LOGGER_TOKEN, useValue: logger },
   ...databaseProviders,
+  ...quietHoursProviders,
+  ...preferencesProviders,
   { token: HTTP_SERVER_TOKEN, useClass: HttpServer }
 ]
