@@ -10,7 +10,7 @@ const databaseUrl = z.url().parse(process.env.DATABASE_URL)
 
 export default defineConfig({
   dialect: 'postgresql',
-  schema: './src/infra/database/schema/**/*.ts',
+  schema: './src/infra/database/drizzle/schema/index.ts',
   out: './drizzle',
   dbCredentials: { url: databaseUrl },
   strict: true,
