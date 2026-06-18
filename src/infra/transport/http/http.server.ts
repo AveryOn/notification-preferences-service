@@ -8,6 +8,7 @@ import { Inject, Injectable } from '~/core/di/di.container'
 import { httpLoggerMiddleware } from '~/infra/transport/http/http-logger.middleware'
 import type { LoggerPort } from '~/shared/logger/logger.port'
 import { QuietHoursController } from '~/modules/v1/quiet-hours/infra/http/quiet-hours.controller'
+import { PreferencesController } from '~/modules/v1/preferences/infra/http/preferences.controller'
 
 type Environment = typeof env
 
@@ -19,7 +20,9 @@ export class HttpServer {
     @Inject(ENV_TOKEN) private readonly environment: Environment,
     @Inject(LOGGER_TOKEN) private readonly logger: LoggerPort,
     @Inject(QuietHoursController)
-    private readonly quietHoursController: QuietHoursController
+    private readonly quietHoursController: QuietHoursController,
+    @Inject(PreferencesController)
+    private readonly preferencesController: PreferencesController
   ) {
     this.app = express()
     this.configure()
@@ -62,6 +65,7 @@ export class HttpServer {
     this.app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 
     this.quietHoursController.register(this.app)
+    this.preferencesController.register(this.app)
 
     this.app.get('/health', (_request, response) => {
       response.status(200).json({ status: 'ok' })
