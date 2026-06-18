@@ -26,6 +26,7 @@ export class DiContainer implements DiContainerPort {
       : [providerOrProviders]
 
     for (const provider of providers) {
+      console.log('Provider Register:', provider.token)
       this.providers.set(provider.token, provider)
     }
   }
