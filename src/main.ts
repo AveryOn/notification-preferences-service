@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 
-import { appProviders } from '~/app/app.providers'
-import { HTTP_SERVER_TOKEN } from '~/app/app.tokens'
+import { appProviders } from '~/core/app/app.providers'
+import { HTTP_SERVER_TOKEN } from '~/core/app/app.tokens'
 import { DiModule } from '~/core/di/di.module'
 import type { HttpServer } from '~/infra/transport/http/http.server'
 
