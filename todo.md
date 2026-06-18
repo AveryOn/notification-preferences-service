@@ -53,6 +53,11 @@
 - добавить централизованный error handler
 - добавить middleware для обработки 404 Not Found
 - настроить graceful shutdown по sigterm и sigint
+- добавить health-check endpoint
+- настроить таймауты HTTP-сервера
+- добавить rate limiting
+- добавить OpenAPI/Swagger endpoint
+- отключить заголовок X-Powered-By (чтобы не раскрывать лишнюю информацию о сервере)
 
 ## Развертываение первого архитектурного среза
 
