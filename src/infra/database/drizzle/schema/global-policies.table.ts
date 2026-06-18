@@ -5,7 +5,7 @@ import {
   id,
   updatedAt
 } from '~/infra/database/drizzle/helpers/table.helpers'
-import { notificationTypesTable } from '~/infra/database/drizzle/schema/notification-types.table'
+import { notificationTypesTable } from '~/infra/database/drizzle/schema'
 
 export const globalPoliciesTable = pgTable(
   'global_policies',
@@ -30,14 +30,9 @@ export const globalPoliciesTable = pgTable(
 
     updatedAt: updatedAt()
   },
-  (table) => [
+  (t) => [
     unique('global_policies_rule_unique')
-      .on(
-        table.notificationTypeId,
-        table.channel,
-        table.region,
-        table.reason
-      )
+      .on(t.notificationTypeId, t.channel, t.region, t.reason)
       .nullsNotDistinct()
   ]
 )

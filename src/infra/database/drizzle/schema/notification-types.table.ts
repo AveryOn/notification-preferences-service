@@ -7,7 +7,6 @@ import {
 
 export const notificationTypesTable = pgTable('notification_types', {
   id: id(),
-
   // code используется как машинный айдишник типа уведомления
   code: text('code').notNull().unique(),
   // name - человекочитаемое имя типа уведомления

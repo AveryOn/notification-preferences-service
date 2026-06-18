@@ -5,13 +5,12 @@ import {
   uniqueIndex,
   uuid
 } from 'drizzle-orm/pg-core'
-
-import { notificationTypesTable } from '~/infra/database/drizzle/schema/notification-types.table'
 import {
   updatedAt,
   createdAt,
   id
 } from '~/infra/database/drizzle/helpers/table.helpers'
+import { notificationTypesTable } from '~/infra/database/drizzle/schema'
 
 export const userPreferencesTable = pgTable(
   'user_preferences',

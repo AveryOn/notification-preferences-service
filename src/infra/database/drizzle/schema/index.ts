@@ -1,3 +1,7 @@
 export * from '~/infra/database/drizzle/schema/default-preferences.table'
 export * from '~/infra/database/drizzle/schema/notification-types.table'
 export * from '~/infra/database/drizzle/schema/user-preferences.table'
+export * from '~/infra/database/drizzle/schema/channels.table'
+export * from '~/infra/database/drizzle/schema/global-policies.table'
+export * from '~/infra/database/drizzle/schema/idempotency-records.table'
+export * from '~/infra/database/drizzle/schema/quiet-hours.table'

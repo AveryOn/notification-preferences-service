@@ -31,13 +31,13 @@ export const idempotencyRecordsTable = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt()
   },
-  (table) => [
+  (t) => [
     unique('idempotency_records_scope_unique').on(
-      table.userId,
-      table.operation,
-      table.idempotencyKey
+      t.userId,
+      t.operation,
+      t.idempotencyKey
     ),
 
-    index('idempotency_records_expires_at_index').on(table.expiresAt)
+    index('idempotency_records_expires_at_index').on(t.expiresAt)
   ]
 )
