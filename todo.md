@@ -48,7 +48,11 @@
 - настроить CORS с учетом окружения (dev | prod)
 - настроить urlencoded + body parser мидлвары
 - настроить helmet (также активация по флагу isProduction)
--
+- добавить requestId для каждого запроса
+- подключить HTTP-логирование через pino-http
+- добавить централизованный error handler
+- добавить middleware для обработки 404 Not Found
+- настроить graceful shutdown по sigterm и sigint
 
 ## Развертываение первого архитектурного среза
 
