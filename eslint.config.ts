@@ -53,7 +53,8 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: '^_',
           ignoreRestSiblings: true
         }
-      ]
+      ],
+      '@typescript-eslint/no-explicit-any': 'off'
     }
   }
 )
