@@ -36,10 +36,11 @@
 <!-- - HMR + dev сервер -->
 <!-- - editorconfig -->
 
-- EsLint
-- formatter (prettier)
-- vscode settings file (сохранение + форматироввание по ctrl + s)
+<!-- - EsLint -->
+<!-- - formatter (prettier) -->
+<!-- - vscode settings file (сохранение + форматироввание по ctrl + s) -->
 <!-- - git-хуки для безопасности CI -->
+
 - env.example + zod валидацию переменных
 - import aliases
 - Docker окружение

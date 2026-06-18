@@ -29,7 +29,9 @@ export default tseslint.config(
     languageOptions: {
       globals: globals.node,
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ["eslint.config.ts", "tsup.config.ts"],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -45,8 +47,10 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
-          argsIgnorePattern: "^*",
-          varsIgnorePattern: "^*",
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
         },
       ],
     },
