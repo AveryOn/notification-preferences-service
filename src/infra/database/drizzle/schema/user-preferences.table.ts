@@ -28,11 +28,11 @@ export const userPreferencesTable = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt()
   },
-  (table) => [
+  (t) => [
     uniqueIndex('up_user_type_channel_unique').on(
-      table.userId,
-      table.notificationTypeId,
-      table.channel
+      t.userId,
+      t.notificationTypeId,
+      t.channel
     )
   ]
 )
