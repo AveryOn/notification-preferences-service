@@ -38,7 +38,9 @@ export class DiContainer implements DiContainerPort {
     const provider = this.providers.get(token)
 
     if (!provider) {
-      throw new Error(`Provider is not registered: ${String(token)}`)
+      throw new Error(
+        `Provider is not registered: ${this.formatToken(token)}`
+      )
     }
 
     const instance = this.createInstance(provider)
@@ -114,6 +116,22 @@ export class DiContainer implements DiContainerPort {
     provider: DiProvider
   ): provider is FactoryDiProvider {
     return 'useFactory' in provider
+  }
+
+  private formatToken(token: DiToken): string {
+    if (typeof token === 'string') {
+      return token
+    }
+
+    if (typeof token === 'symbol') {
+      return token.description ?? token.toString()
+    }
+
+    if (typeof token === 'function') {
+      return token.name || 'AnonymousClass'
+    }
+
+    return 'UnknownToken'
   }
 }
 
