@@ -31,7 +31,11 @@ export default tseslint.config(
       globals: globals.node,
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['eslint.config.ts', 'tsup.config.ts']
+          allowDefaultProject: [
+            'eslint.config.ts',
+            'tsup.config.ts',
+            'drizzle.config.ts'
+          ]
         },
         tsconfigRootDir: import.meta.dirname
       }
