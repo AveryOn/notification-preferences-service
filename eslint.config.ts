@@ -12,6 +12,7 @@ export default tseslint.config(
       "coverage/",
       ".nyc_output/",
       ".vitest/",
+      ".husky/**",
       "test-results/",
       "drizzle/meta/_journal.json",
       "logs/",

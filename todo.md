@@ -43,7 +43,7 @@
 
 - env.example + zod валидацию переменных
 - import aliases
-- Docker окружение
+<!-- - Docker окружение -->
 - окружения тестирование под Vitest
 
 ## Express Server:

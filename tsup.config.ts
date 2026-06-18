@@ -13,4 +13,5 @@ export default defineConfig({
   minify: false,
   dts: false,
   treeshake: true,
+  tsconfig: "tsconfig.json",
 });
