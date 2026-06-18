@@ -42,12 +42,13 @@ CREATE TABLE "channels" (
 CREATE TABLE "global_policies" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"notification_type_id" uuid,
-	"channel" text,
+	"channel_id" uuid,
 	"region" text,
+	"decision" text NOT NULL,
 	"reason" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "global_policies_rule_unique" UNIQUE NULLS NOT DISTINCT("notification_type_id","channel","region","reason")
+	CONSTRAINT "global_policies_rule_unique" UNIQUE NULLS NOT DISTINCT("notification_type_id","channel_id","region","decision","reason")
 );
 --> statement-breakpoint
 CREATE TABLE "idempotency_records" (
@@ -79,6 +80,7 @@ ALTER TABLE "default_preferences" ADD CONSTRAINT "default_preferences_notificati
 ALTER TABLE "default_preferences" ADD CONSTRAINT "default_preferences_channel_id_channels_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channels"("id") ON DELETE restrict ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "user_preferences" ADD CONSTRAINT "user_preferences_notification_type_id_notification_types_id_fk" FOREIGN KEY ("notification_type_id") REFERENCES "public"."notification_types"("id") ON DELETE restrict ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "global_policies" ADD CONSTRAINT "global_policies_notification_type_id_notification_types_id_fk" FOREIGN KEY ("notification_type_id") REFERENCES "public"."notification_types"("id") ON DELETE restrict ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "global_policies" ADD CONSTRAINT "global_policies_channel_id_channels_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channels"("id") ON DELETE restrict ON UPDATE cascade;--> statement-breakpoint
 CREATE UNIQUE INDEX "up_user_type_channel_unique" ON "user_preferences" USING btree ("user_id","notification_type_id","channel");--> statement-breakpoint
 CREATE INDEX "idempotency_records_expires_at_index" ON "idempotency_records" USING btree ("expires_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "quiet_hours_user_unique" ON "quiet_hours" USING btree ("user_id");

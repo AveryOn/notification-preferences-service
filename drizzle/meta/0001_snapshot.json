@@ -1,6 +1,6 @@
 {
-  "id": "e46aa07f-894f-45cd-91d1-897b07366fdc",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "ce05173a-9015-40ca-9f7d-5651acfb3440",
+  "prevId": "e46aa07f-894f-45cd-91d1-897b07366fdc",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -53,28 +53,28 @@
         "default_preferences_notification_type_id_notification_types_id_fk": {
           "name": "default_preferences_notification_type_id_notification_types_id_fk",
           "tableFrom": "default_preferences",
-          "tableTo": "notification_types",
           "columnsFrom": ["notification_type_id"],
+          "tableTo": "notification_types",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "cascade"
+          "onUpdate": "cascade",
+          "onDelete": "restrict"
         },
         "default_preferences_channel_id_channels_id_fk": {
           "name": "default_preferences_channel_id_channels_id_fk",
           "tableFrom": "default_preferences",
-          "tableTo": "channels",
           "columnsFrom": ["channel_id"],
+          "tableTo": "channels",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "cascade"
+          "onUpdate": "cascade",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "default_preferences_notification_type_channel_unique": {
           "name": "default_preferences_notification_type_channel_unique",
-          "nullsNotDistinct": false,
-          "columns": ["notification_type_id", "channel_id"]
+          "columns": ["notification_type_id", "channel_id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -139,8 +139,8 @@
       "uniqueConstraints": {
         "notification_types_code_unique": {
           "name": "notification_types_code_unique",
-          "nullsNotDistinct": false,
-          "columns": ["code"]
+          "columns": ["code"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -221,20 +221,20 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "user_preferences_notification_type_id_notification_types_id_fk": {
           "name": "user_preferences_notification_type_id_notification_types_id_fk",
           "tableFrom": "user_preferences",
-          "tableTo": "notification_types",
           "columnsFrom": ["notification_type_id"],
+          "tableTo": "notification_types",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "cascade"
+          "onUpdate": "cascade",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -294,8 +294,8 @@
       "uniqueConstraints": {
         "channels_code_unique": {
           "name": "channels_code_unique",
-          "nullsNotDistinct": false,
-          "columns": ["code"]
+          "columns": ["code"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -363,34 +363,34 @@
         "global_policies_notification_type_id_notification_types_id_fk": {
           "name": "global_policies_notification_type_id_notification_types_id_fk",
           "tableFrom": "global_policies",
-          "tableTo": "notification_types",
           "columnsFrom": ["notification_type_id"],
+          "tableTo": "notification_types",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "cascade"
+          "onUpdate": "cascade",
+          "onDelete": "restrict"
         },
         "global_policies_channel_id_channels_id_fk": {
           "name": "global_policies_channel_id_channels_id_fk",
           "tableFrom": "global_policies",
-          "tableTo": "channels",
           "columnsFrom": ["channel_id"],
+          "tableTo": "channels",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "cascade"
+          "onUpdate": "cascade",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "global_policies_rule_unique": {
           "name": "global_policies_rule_unique",
-          "nullsNotDistinct": true,
           "columns": [
             "notification_type_id",
             "channel_id",
             "region",
             "decision",
             "reason"
-          ]
+          ],
+          "nullsNotDistinct": true
         }
       },
       "policies": {},
@@ -484,9 +484,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -494,8 +494,8 @@
       "uniqueConstraints": {
         "idempotency_records_scope_unique": {
           "name": "idempotency_records_scope_unique",
-          "nullsNotDistinct": false,
-          "columns": ["user_id", "operation", "idempotency_key"]
+          "columns": ["user_id", "operation", "idempotency_key"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -564,9 +564,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -579,10 +579,10 @@
   },
   "enums": {},
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
