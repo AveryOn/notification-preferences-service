@@ -14,7 +14,35 @@ const envSchema = z.object({
   POSTGRES_DB: z.string().min(1),
   POSTGRES_PORT: z.coerce.number().int().positive().max(65535),
 
-  DATABASE_URL: z.url()
+  DATABASE_URL: z.url(),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+    .default('info'),
+
+  LOG_PRETTY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  CORS_ORIGINS: z
+    .string()
+    .min(1, 'CORS_ORIGINS is required')
+    .refine(
+      (value) =>
+        value.split(',').every((origin) => {
+          const normalizedOrigin = origin.trim()
+
+          if (normalizedOrigin === '*') {
+            return true
+          }
+
+          return z.string().url().safeParse(normalizedOrigin).success
+        }),
+      'CORS_ORIGINS must contain valid comma-separated URLs or *'
+    ),
+
+  TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
 })
 
 const result = envSchema.safeParse(process.env)
