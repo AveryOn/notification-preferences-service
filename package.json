@@ -20,7 +20,11 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "tsc --noEmit"
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,jsonc,md,yml,yaml}": [
+      "prettier --write"
     ]
   },
   "repository": {
