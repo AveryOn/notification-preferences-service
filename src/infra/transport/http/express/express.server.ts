@@ -14,11 +14,12 @@ import { GlobalPoliciesController } from '~/modules/v1/global-policies/infra/htt
 import { NotificationTypesController } from '~/modules/v1/notification-types/infra/http/notification-types.controller'
 import { ChannelsController } from '~/modules/v1/channels/infra/http/channels.controller'
 import { EvaluationController } from '~/modules/v1/evaluation/infra/http/evaluation.controller'
+import type { HttpServerPort } from '~/infra/transport/http/http.port'
 
 type Environment = typeof env
 
 @Injectable()
-export class HttpServer {
+export class HttpServer implements HttpServerPort {
   private readonly app: Express
 
   constructor(
