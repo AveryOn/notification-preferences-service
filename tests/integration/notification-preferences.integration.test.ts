@@ -30,7 +30,7 @@ interface ReferenceIds {
   }
 }
 
-describe('Notification Preferences Service integration scenarios', () => {
+describe('Интеграционные сценарии Notification Preferences Service', () => {
   let context: PostgresTestContext
   let application: TestApplication
   let references: ReferenceIds
@@ -51,7 +51,7 @@ describe('Notification Preferences Service integration scenarios', () => {
     }
   })
 
-  it('initializes a new user with the configured default preferences', async () => {
+  it('Инициализирует нового пользователя с заданными по умолчанию настройками', async () => {
     const preferences =
       await application.preferencesService.initialize('user-defaults')
 
@@ -64,7 +64,7 @@ describe('Notification Preferences Service integration scenarios', () => {
     )
   })
 
-  it('updates one user preference without changing the remaining defaults', async () => {
+  it('Обновляет одну пользовательскую настройку, не изменяя остальные настройки по умолчанию', async () => {
     const userId = 'user-preference-update'
 
     await application.preferencesService.initialize(userId)
@@ -85,7 +85,7 @@ describe('Notification Preferences Service integration scenarios', () => {
     ).toBe(true)
   })
 
-  it('blocks non-transactional notifications during quiet hours but allows transactional notifications', async () => {
+  it('блокирует уведомления, не связанные с транзакциями, в quiet-hours, но разрешает уведомления, связанные с транзакциями.', async () => {
     const userId = 'user-quiet-hours'
 
     await application.preferencesService.initialize(userId)
@@ -127,7 +127,7 @@ describe('Notification Preferences Service integration scenarios', () => {
     })
   })
 
-  it('applies a matching regional global policy before user preferences', async () => {
+  it('Применяет соответствующую региональную глобальную политику до учета пользовательских предпочтений', async () => {
     const userId = 'user-global-policy'
 
     await application.preferencesService.initialize(userId)
@@ -151,7 +151,7 @@ describe('Notification Preferences Service integration scenarios', () => {
     })
   })
 
-  it('replays a repeated preference command without executing it twice', async () => {
+  it('Воспроизводит повторно выполненную команду настроек, не выполняя её дважды.', async () => {
     const userId = 'user-idempotency'
     const handler = vi.fn(async () => {
       const preference = await application.preferencesService.update(
