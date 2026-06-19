@@ -1,6 +1,6 @@
 import type { Server } from 'node:http'
 import type { env } from '~/env'
-import type { LoggerPort } from '~/shared/logger/logger.port'
+import type { LoggerPort } from '~/infra/logger'
 
 import cors from 'cors'
 import express, { type Express } from 'express'

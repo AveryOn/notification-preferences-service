@@ -1,5 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express'
-import type { LoggerPort } from '~/shared/logger/logger.port'
+import type { LoggerPort } from '~/infra/logger'
 
 import { HttpError } from '~/infra/transport/http/http.error'
 import {

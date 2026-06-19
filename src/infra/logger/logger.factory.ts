@@ -2,7 +2,7 @@ import pino from 'pino'
 
 import { env } from '~/env'
 import { PinoLoggerAdapter } from '~/infra/logger/pino-logger.adapter'
-import type { LoggerPort } from '~/shared/logger/logger.port'
+import type { LoggerPort } from '~/infra/logger'
 
 const transport =
   env.NODE_ENV === 'development' && env.LOG_PRETTY

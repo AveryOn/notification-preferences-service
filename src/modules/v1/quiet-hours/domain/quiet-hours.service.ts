@@ -1,4 +1,4 @@
-import type { LoggerPort } from '~/shared/logger/logger.port'
+import type { LoggerPort } from '~/infra/logger'
 import type {
   QuietHours,
   UpdateQuietHoursInput
@@ -38,7 +38,12 @@ export class QuietHoursService extends QuietHoursServicePort {
     this.validateTime(input.endTime, 'endTime')
     this.validateTimezone(input.timezone)
 
-    const quietHours = await this.repository.upsert({ userId, ...input })
+    const quietHours = await this.repository.upsert({
+      userId,
+      endTime: input.endTime,
+      startTime: input.startTime,
+      timezone: input.timezone
+    })
 
     this.logger.info(
       {

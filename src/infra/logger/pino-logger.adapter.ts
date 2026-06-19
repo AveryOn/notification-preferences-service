@@ -1,6 +1,6 @@
 import type { Logger as PinoLogger } from 'pino'
 
-import type { LogContext, LoggerPort } from '~/shared/logger/logger.port'
+import type { LogContext, LoggerPort } from '~/infra/logger'
 
 export class PinoLoggerAdapter implements LoggerPort {
   public constructor(private readonly logger: PinoLogger) {}

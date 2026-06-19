@@ -7,7 +7,7 @@ import type { DiProvider } from '~/core/di/types'
 import type { Database } from '~/infra/database/drizzle/index'
 import { DrizzleDatabaseAdapter } from '~/infra/database/database.adapter'
 import { DATABASE_POOL_TOKEN } from '~/infra/database/database.tokens'
-import type { LoggerPort } from '~/shared/logger/logger.port'
+import type { LoggerPort } from '~/infra/logger'
 
 type Environment = typeof env
 

@@ -1,4 +1,4 @@
-import type { LoggerPort } from '~/shared/logger/logger.port'
+import type { LoggerPort } from '~/infra/logger'
 import type {
   EvaluateNotificationInput,
   EvaluationDecision,
