@@ -1,11 +1,16 @@
+import type { LoggerPort } from '~/shared/logger/logger.port'
+import {
+  type PreferenceSelector,
+  type UpdatePreferenceInput,
+  type UserPreference
+} from '~/modules/v1/preferences/domain/preferences.types'
+
+import { LOGGER_TOKEN } from '~/app/app.tokens'
 import { Inject, Injectable } from '~/core/di'
 import {
   DefaultPreferenceNotFoundError,
-  type PreferenceSelector,
   PreferenceReferenceNotFoundError,
-  PreferencesNotInitializedError,
-  type UpdatePreferenceInput,
-  type UserPreference
+  PreferencesNotInitializedError
 } from '~/modules/v1/preferences/domain/preferences.types'
 import { PreferencesRepositoryPort } from '~/modules/v1/preferences/ports/preferences.repo.port'
 import { PreferencesServicePort } from '~/modules/v1/preferences/ports/preferences.service.port'
@@ -14,13 +19,27 @@ import { PreferencesServicePort } from '~/modules/v1/preferences/ports/preferenc
 export class PreferencesService extends PreferencesServicePort {
   constructor(
     @Inject(PreferencesRepositoryPort)
-    private readonly repository: PreferencesRepositoryPort
+    private readonly repository: PreferencesRepositoryPort,
+
+    @Inject(LOGGER_TOKEN)
+    private readonly logger: LoggerPort
   ) {
     super()
   }
 
-  initialize(userId: string): Promise<UserPreference[]> {
-    return this.repository.initialize(userId)
+  async initialize(userId: string): Promise<UserPreference[]> {
+    const preferences = await this.repository.initialize(userId)
+
+    this.logger.info(
+      {
+        event: 'notification_preferences_initialized',
+        userId,
+        preferencesCount: preferences.length
+      },
+      'Notification preferences initialized'
+    )
+
+    return preferences
   }
 
   async getByUserId(userId: string): Promise<UserPreference[]> {
@@ -47,6 +66,17 @@ export class PreferencesService extends PreferencesServicePort {
       )
     }
 
+    this.logger.info(
+      {
+        event: 'notification_preference_updated',
+        userId,
+        notificationType: preference.notificationTypeCode,
+        channel: preference.channelCode,
+        enabled: preference.enabled
+      },
+      'Notification preference updated'
+    )
+
     return preference
   }
 
@@ -66,6 +96,17 @@ export class PreferencesService extends PreferencesServicePort {
         'Default preference was not found'
       )
     }
+
+    this.logger.info(
+      {
+        event: 'notification_preference_reset',
+        userId,
+        notificationType: preference.notificationTypeCode,
+        channel: preference.channelCode,
+        enabled: preference.enabled
+      },
+      'Notification preference reset to default'
+    )
 
     return preference
   }
