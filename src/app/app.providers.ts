@@ -4,7 +4,7 @@ import {
   ENV_TOKEN,
   HTTP_SERVER_TOKEN,
   LOGGER_TOKEN
-} from '~/core/app/app.tokens'
+} from '~/app/app.tokens'
 import { env } from '~/env'
 import { databaseProviders } from '~/infra/database/database.providers'
 import { logger } from '~/infra/logger/logger.factory'
@@ -20,9 +20,9 @@ export const appProviders: DiProvider[] = [
   { token: LOGGER_TOKEN, useValue: logger },
   ...databaseProviders,
   ...quietHoursProviders,
+  ...notificationTypesProviders,
   ...preferencesProviders,
   ...globalPoliciesProviders,
   ...idempotencyProviders,
-  ...notificationTypesProviders,
   { token: HTTP_SERVER_TOKEN, useClass: HttpServer }
 ]
