@@ -13,6 +13,7 @@ import { PreferencesController } from '~/modules/v1/preferences/infra/http/prefe
 import { GlobalPoliciesController } from '~/modules/v1/global-policies/infra/http/global-policies.controller'
 import { NotificationTypesController } from '~/modules/v1/notification-types/infra/http/notification-types.controller'
 import { ChannelsController } from '~/modules/v1/channels/infra/http/channels.controller'
+import { EvaluationController } from '~/modules/v1/evaluation/infra/http/evaluation.controller'
 
 type Environment = typeof env
 
@@ -36,7 +37,10 @@ export class HttpServer {
     private readonly notificationTypesController: NotificationTypesController,
 
     @Inject(ChannelsController)
-    private readonly channelsController: ChannelsController
+    private readonly channelsController: ChannelsController,
+
+    @Inject(EvaluationController)
+    private readonly evaluationController: EvaluationController
   ) {
     this.app = express()
     this.configure()
@@ -83,6 +87,7 @@ export class HttpServer {
     this.preferencesController.register(this.app)
     this.globalPoliciesController.register(this.app)
     this.notificationTypesController.register(this.app)
+    this.evaluationController.register(this.app)
 
     this.app.get('/health', (_request, response) => {
       response.status(200).json({ status: 'ok' })

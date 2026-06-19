@@ -15,6 +15,7 @@ import { globalPoliciesProviders } from '~/modules/v1/global-policies/global-pol
 import { idempotencyProviders } from '~/modules/v1/idempotency/idempotency.module'
 import { notificationTypesProviders } from '~/modules/v1/notification-types/notification-types.module'
 import { channelsProviders } from '~/modules/v1/channels/channels.module'
+import { evaluationProviders } from '~/modules/v1/evaluation/evaluation.module'
 
 export const appProviders: DiProvider[] = [
   { token: ENV_TOKEN, useValue: env },
@@ -26,5 +27,6 @@ export const appProviders: DiProvider[] = [
   ...preferencesProviders,
   ...globalPoliciesProviders,
   ...idempotencyProviders,
+  ...evaluationProviders,
   { token: HTTP_SERVER_TOKEN, useClass: HttpServer }
 ]
