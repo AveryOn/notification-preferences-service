@@ -1,7 +1,7 @@
 import pino from 'pino'
 
 import { env } from '~/env'
-import { PinoLoggerAdapter } from '~/infra/logger/pino-logger.adapter'
+import { PinoLoggerAdapter } from '~/infra/logger'
 import type { LoggerPort } from '~/infra/logger'
 
 const transport =

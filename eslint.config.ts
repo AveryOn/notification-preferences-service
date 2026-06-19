@@ -36,7 +36,8 @@ export default tseslint.config(
             'tsup.config.ts',
             'drizzle.config.ts',
             'scripts/generate-project-source.mjs',
-            'scripts/run-seed.ts'
+            'scripts/run-seed.ts',
+            'vitest.config.ts'
           ]
         },
         tsconfigRootDir: import.meta.dirname

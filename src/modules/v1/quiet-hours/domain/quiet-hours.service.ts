@@ -38,12 +38,7 @@ export class QuietHoursService extends QuietHoursServicePort {
     this.validateTime(input.endTime, 'endTime')
     this.validateTimezone(input.timezone)
 
-    const quietHours = await this.repository.upsert({
-      userId,
-      endTime: input.endTime,
-      startTime: input.startTime,
-      timezone: input.timezone
-    })
+    const quietHours = await this.repository.upsert({ userId, ...input })
 
     this.logger.info(
       {
