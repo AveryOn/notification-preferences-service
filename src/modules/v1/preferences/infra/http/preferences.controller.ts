@@ -71,7 +71,10 @@ export class PreferencesController {
             params.data.userId
           )
 
-          return { statusCode: 200, body: { data: preferences } }
+          return {
+            statusCode: 200,
+            body: { data: preferences }
+          }
         }
       )
 
@@ -132,12 +135,45 @@ export class PreferencesController {
         return
       }
 
-      const preference = await this.service.update(
-        params.data.userId,
-        body.data
+      const key = idempotencyKeySchema.safeParse(
+        request.header(APP_HEADER_KEY['Idempotency-Key'])
       )
 
-      response.status(200).json({ data: preference })
+      if (!key.success) {
+        response.status(400).json({
+          code: 'idempotency_key_required',
+          issues: key.error.issues
+        })
+        return
+      }
+
+      const result = await this.idempotencyService.execute(
+        {
+          userId: params.data.userId,
+          operation: 'preferences.update',
+          idempotencyKey: key.data,
+          payload: body.data
+        },
+        async () => {
+          const preference = await this.service.update(
+            params.data.userId,
+            body.data
+          )
+
+          return {
+            statusCode: 200,
+            body: { data: preference }
+          }
+        }
+      )
+
+      response
+        .setHeader(
+          APP_HEADER_KEY['Idempotency-Replayed'],
+          String(result.replayed)
+        )
+        .status(result.statusCode)
+        .json(result.body)
     } catch (error) {
       this.handleError(error, response, next)
     }
