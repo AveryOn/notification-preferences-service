@@ -1,9 +1,7 @@
 import type { Express, NextFunction, Request, Response } from 'express'
+
 import { Inject, Injectable } from '~/core/di/di.container'
-import {
-  GlobalPolicyNotFoundError,
-  GlobalPolicyReferenceNotFoundError
-} from '~/modules/v1/global-policies/domain/global-policies.types'
+import { validateRequest } from '~/infra/transport/http/request.validator'
 import {
   createGlobalPolicyBodySchema,
   globalPolicyParamsSchema
@@ -43,33 +41,21 @@ export class GlobalPoliciesController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const body = createGlobalPolicyBodySchema.safeParse(request.body)
-
-      if (!body.success) {
-        response
-          .status(400)
-          .json({ code: 'invalid_request', issues: body.error.issues })
-        return
-      }
+      const body = validateRequest(
+        createGlobalPolicyBodySchema,
+        request.body
+      )
 
       const policy = await this.service.create({
-        decision: body.data.decision,
-        reason: body.data.reason,
-        channel: body.data.channel!,
-        notificationType: body.data.notificationType!,
-        region: body.data.region!
+        decision: body.decision,
+        reason: body.reason,
+        channel: body.channel!,
+        notificationType: body.notificationType!,
+        region: body.region!
       })
 
       response.status(201).json({ data: policy })
     } catch (error) {
-      if (error instanceof GlobalPolicyReferenceNotFoundError) {
-        response.status(404).json({
-          code: 'global_policy_reference_not_found',
-          message: error.message
-        })
-        return
-      }
-
       next(error)
     }
   }
@@ -80,27 +66,15 @@ export class GlobalPoliciesController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = globalPolicyParamsSchema.safeParse(request.params)
+      const params = validateRequest(
+        globalPolicyParamsSchema,
+        request.params
+      )
 
-      if (!params.success) {
-        response
-          .status(400)
-          .json({ code: 'invalid_request', issues: params.error.issues })
-        return
-      }
-
-      await this.service.remove(params.data.policyId)
+      await this.service.remove(params.policyId)
 
       response.status(204).send()
     } catch (error) {
-      if (error instanceof GlobalPolicyNotFoundError) {
-        response.status(404).json({
-          code: 'global_policy_not_found',
-          message: error.message
-        })
-        return
-      }
-
       next(error)
     }
   }

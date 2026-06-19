@@ -1,9 +1,11 @@
 import type { Express, NextFunction, Request, Response } from 'express'
+
 import { APP_HEADER_KEY } from '~/core/const'
 import { Inject, Injectable } from '~/core/di/di.container'
+import { HttpError } from '~/infra/transport/http/http.error'
+import { validateRequest } from '~/infra/transport/http/request.validator'
 import { idempotencyKeySchema } from '~/modules/v1/idempotency/infra/http/idempotency.dto'
 import { IdempotencyServicePort } from '~/modules/v1/idempotency/ports/idempotency.service.port'
-import { QuietHoursValidationError } from '~/modules/v1/quiet-hours/domain/quiet-hours.types'
 import {
   quietHoursParamsSchema,
   updateQuietHoursBodySchema
@@ -32,22 +34,19 @@ export class QuietHoursController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = quietHoursParamsSchema.safeParse(request.params)
+      const params = validateRequest(
+        quietHoursParamsSchema,
+        request.params
+      )
 
-      if (!params.success) {
-        response
-          .status(400)
-          .json({ code: 'invalid_request', issues: params.error.issues })
-        return
-      }
-
-      const quietHours = await this.service.getByUserId(params.data.userId)
+      const quietHours = await this.service.getByUserId(params.userId)
 
       if (!quietHours) {
-        response.status(404).json({
-          code: 'quiet_hours_not_found'
-        })
-        return
+        throw new HttpError(
+          404,
+          'quiet_hours_not_found',
+          'Quiet hours were not found'
+        )
       }
 
       response.status(200).json({ data: quietHours })
@@ -62,48 +61,35 @@ export class QuietHoursController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = quietHoursParamsSchema.safeParse(request.params)
-      const body = updateQuietHoursBodySchema.safeParse(request.body)
-
-      if (!params.success || !body.success) {
-        response.status(400).json({
-          code: 'invalid_request',
-          issues: [
-            ...(params.success ? [] : params.error.issues),
-            ...(body.success ? [] : body.error.issues)
-          ]
-        })
-        return
-      }
-
-      const key = idempotencyKeySchema.safeParse(
-        request.header(APP_HEADER_KEY['Idempotency-Key'])
+      const params = validateRequest(
+        quietHoursParamsSchema,
+        request.params
       )
 
-      if (!key.success) {
-        response.status(400).json({
-          code: 'idempotency_key_required',
-          issues: key.error.issues
-        })
-        return
-      }
+      const body = validateRequest(
+        updateQuietHoursBodySchema,
+        request.body
+      )
+
+      const idempotencyKey = validateRequest(
+        idempotencyKeySchema,
+        request.header(APP_HEADER_KEY['Idempotency-Key']),
+        'idempotency_key_required'
+      )
 
       const result = await this.idempotencyService.execute(
         {
-          userId: params.data.userId,
+          userId: params.userId,
           operation: 'quiet-hours.update',
-          idempotencyKey: key.data,
-          payload: body.data
+          idempotencyKey,
+          payload: body
         },
         async () => {
-          const quietHours = await this.service.update(
-            params.data.userId,
-            {
-              startTime: body.data.startTime!,
-              endTime: body.data.endTime!,
-              timezone: body.data.timezone!
-            }
-          )
+          const quietHours = await this.service.update(params.userId, {
+            endTime: body.endTime!,
+            startTime: body.startTime!,
+            timezone: body.timezone!
+          })
 
           return {
             statusCode: 200,
@@ -120,14 +106,6 @@ export class QuietHoursController {
         .status(result.statusCode)
         .json(result.body)
     } catch (error) {
-      if (error instanceof QuietHoursValidationError) {
-        response.status(400).json({
-          code: 'invalid_quiet_hours',
-          message: error.message
-        })
-        return
-      }
-
       next(error)
     }
   }
@@ -138,22 +116,19 @@ export class QuietHoursController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = quietHoursParamsSchema.safeParse(request.params)
+      const params = validateRequest(
+        quietHoursParamsSchema,
+        request.params
+      )
 
-      if (!params.success) {
-        response
-          .status(400)
-          .json({ code: 'invalid_request', issues: params.error.issues })
-        return
-      }
-
-      const deleted = await this.service.remove(params.data.userId)
+      const deleted = await this.service.remove(params.userId)
 
       if (!deleted) {
-        response.status(404).json({
-          code: 'quiet_hours_not_found'
-        })
-        return
+        throw new HttpError(
+          404,
+          'quiet_hours_not_found',
+          'Quiet hours were not found'
+        )
       }
 
       response.status(204).send()

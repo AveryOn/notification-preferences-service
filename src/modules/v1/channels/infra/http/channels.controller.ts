@@ -1,10 +1,7 @@
 import type { Express, NextFunction, Request, Response } from 'express'
 
 import { Inject, Injectable } from '~/core/di'
-import {
-  ChannelCodeConflictError,
-  ChannelNotFoundError
-} from '~/modules/v1/channels/domain/channels.types'
+import { validateRequest } from '~/infra/transport/http/request.validator'
 import {
   channelParamsSchema,
   createChannelBodySchema,
@@ -45,20 +42,13 @@ export class ChannelsController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const body = createChannelBodySchema.safeParse(request.body)
+      const body = validateRequest(createChannelBodySchema, request.body)
 
-      if (!body.success) {
-        response
-          .status(400)
-          .json({ code: 'invalid_request', issues: body.error.issues })
-        return
-      }
-
-      const channel = await this.service.create(body.data)
+      const channel = await this.service.create(body)
 
       response.status(201).json({ data: channel })
     } catch (error) {
-      this.handleError(error, response, next)
+      next(error)
     }
   }
 
@@ -68,51 +58,19 @@ export class ChannelsController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = channelParamsSchema.safeParse(request.params)
-      const body = updateChannelBodySchema.safeParse(request.body)
+      const params = validateRequest(channelParamsSchema, request.params)
 
-      if (!params.success || !body.success) {
-        response.status(400).json({
-          code: 'invalid_request',
-          issues: [
-            ...(params.success ? [] : params.error.issues),
-            ...(body.success ? [] : body.error.issues)
-          ]
-        })
-        return
-      }
+      const body = validateRequest(updateChannelBodySchema, request.body)
 
-      const channel = await this.service.update(params.data.channelId, {
-        code: body.data.code!,
-        isActive: body.data.isActive!,
-        name: body.data.name!
+      const channel = await this.service.update(params.channelId, {
+        code: body.code!,
+        isActive: body.isActive!,
+        name: body.name!
       })
 
       response.status(200).json({ data: channel })
     } catch (error) {
-      this.handleError(error, response, next)
+      next(error)
     }
-  }
-
-  private handleError(
-    error: unknown,
-    response: Response,
-    next: NextFunction
-  ): void {
-    if (error instanceof ChannelNotFoundError) {
-      response
-        .status(404)
-        .json({ code: 'channel_not_found', message: error.message })
-      return
-    }
-
-    if (error instanceof ChannelCodeConflictError) {
-      response
-        .status(409)
-        .json({ code: 'channel_code_conflict', message: error.message })
-      return
-    }
-
-    next(error)
   }
 }

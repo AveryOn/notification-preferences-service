@@ -1,30 +1,38 @@
-import type { env } from '~/env'
 import type { Server } from 'node:http'
+import type { env } from '~/env'
 import type { LoggerPort } from '~/shared/logger/logger.port'
 
 import cors from 'cors'
 import express, { type Express } from 'express'
 import helmet from 'helmet'
+
 import { ENV_TOKEN, LOGGER_TOKEN } from '~/app/app.tokens'
 import { Inject, Injectable } from '~/core/di/di.container'
+import {
+  createHttpErrorHandler,
+  notFoundHandler
+} from '~/infra/transport/http/middlewares/http-error.middleware'
 import { httpLoggerMiddleware } from '~/infra/transport/http/http-logger.middleware'
-import { QuietHoursController } from '~/modules/v1/quiet-hours/infra/http/quiet-hours.controller'
-import { PreferencesController } from '~/modules/v1/preferences/infra/http/preferences.controller'
-import { GlobalPoliciesController } from '~/modules/v1/global-policies/infra/http/global-policies.controller'
-import { NotificationTypesController } from '~/modules/v1/notification-types/infra/http/notification-types.controller'
 import { ChannelsController } from '~/modules/v1/channels/infra/http/channels.controller'
 import { EvaluationController } from '~/modules/v1/evaluation/infra/http/evaluation.controller'
-import type { HttpServerPort } from '~/infra/transport/http/http.port'
+import { GlobalPoliciesController } from '~/modules/v1/global-policies/infra/http/global-policies.controller'
+import { NotificationTypesController } from '~/modules/v1/notification-types/infra/http/notification-types.controller'
+import { PreferencesController } from '~/modules/v1/preferences/infra/http/preferences.controller'
+import { QuietHoursController } from '~/modules/v1/quiet-hours/infra/http/quiet-hours.controller'
 
 type Environment = typeof env
 
 @Injectable()
-export class HttpServer implements HttpServerPort {
+export class HttpServer {
   private readonly app: Express
 
   constructor(
-    @Inject(ENV_TOKEN) private readonly environment: Environment,
-    @Inject(LOGGER_TOKEN) private readonly logger: LoggerPort,
+    @Inject(ENV_TOKEN)
+    private readonly environment: Environment,
+
+    @Inject(LOGGER_TOKEN)
+    private readonly logger: LoggerPort,
+
     @Inject(QuietHoursController)
     private readonly quietHoursController: QuietHoursController,
 
@@ -64,7 +72,9 @@ export class HttpServer implements HttpServerPort {
 
     this.app.disable('x-powered-by')
     this.app.set('trust proxy', this.environment.TRUST_PROXY)
+
     this.app.use(httpLoggerMiddleware)
+
     this.app.use(
       cors({
         origin: isProduction
@@ -81,7 +91,12 @@ export class HttpServer implements HttpServerPort {
     }
 
     this.app.use(express.json({ limit: '1mb' }))
-    this.app.use(express.urlencoded({ extended: true, limit: '1mb' }))
+    this.app.use(
+      express.urlencoded({
+        extended: true,
+        limit: '1mb'
+      })
+    )
 
     this.quietHoursController.register(this.app)
     this.channelsController.register(this.app)
@@ -93,5 +108,8 @@ export class HttpServer implements HttpServerPort {
     this.app.get('/health', (_request, response) => {
       response.status(200).json({ status: 'ok' })
     })
+
+    this.app.use(notFoundHandler)
+    this.app.use(createHttpErrorHandler(this.logger))
   }
 }

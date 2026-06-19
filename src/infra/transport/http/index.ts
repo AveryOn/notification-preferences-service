@@ -1,2 +1,5 @@
-export * from '~/infra/transport/http/http-logger.middleware'
 export * from '~/infra/transport/http/http.port'
+export * from '~/infra/transport/http/http.error'
+export * from '~/infra/transport/http/request.validator'
+export * from '~/infra/transport/http/middlewares/http-error.middleware'
+export * from '~/infra/transport/http/middlewares/http-logger.middleware'

@@ -1,13 +1,10 @@
 import type { Express, NextFunction, Request, Response } from 'express'
+
 import { APP_HEADER_KEY } from '~/core/const'
 import { Inject, Injectable } from '~/core/di'
+import { validateRequest } from '~/infra/transport/http/request.validator'
 import { idempotencyKeySchema } from '~/modules/v1/idempotency/infra/http/idempotency.dto'
 import { IdempotencyServicePort } from '~/modules/v1/idempotency/ports/idempotency.service.port'
-import {
-  DefaultPreferenceNotFoundError,
-  PreferenceReferenceNotFoundError,
-  PreferencesNotInitializedError
-} from '~/modules/v1/preferences/domain/preferences.types'
 import {
   preferencesParamsSchema,
   resetPreferenceBodySchema,
@@ -38,38 +35,26 @@ export class PreferencesController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = preferencesParamsSchema.safeParse(request.params)
-
-      if (!params.success) {
-        response
-          .status(400)
-          .json({ code: 'invalid_request', issues: params.error.issues })
-        return
-      }
-
-      const key = idempotencyKeySchema.safeParse(
-        request.header(APP_HEADER_KEY['Idempotency-Key'])
+      const params = validateRequest(
+        preferencesParamsSchema,
+        request.params
       )
 
-      if (!key.success) {
-        response.status(400).json({
-          code: 'idempotency_key_required',
-          issues: key.error.issues
-        })
-        return
-      }
+      const idempotencyKey = validateRequest(
+        idempotencyKeySchema,
+        request.header(APP_HEADER_KEY['Idempotency-Key']),
+        'idempotency_key_required'
+      )
 
       const result = await this.idempotencyService.execute(
         {
-          userId: params.data.userId,
+          userId: params.userId,
           operation: 'preferences.initialize',
-          idempotencyKey: key.data,
+          idempotencyKey,
           payload: {}
         },
         async () => {
-          const preferences = await this.service.initialize(
-            params.data.userId
-          )
+          const preferences = await this.service.initialize(params.userId)
 
           return {
             statusCode: 200,
@@ -96,22 +81,16 @@ export class PreferencesController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = preferencesParamsSchema.safeParse(request.params)
-
-      if (!params.success) {
-        response
-          .status(400)
-          .json({ code: 'invalid_request', issues: params.error.issues })
-        return
-      }
-
-      const preferences = await this.service.getByUserId(
-        params.data.userId
+      const params = validateRequest(
+        preferencesParamsSchema,
+        request.params
       )
+
+      const preferences = await this.service.getByUserId(params.userId)
 
       response.status(200).json({ data: preferences })
     } catch (error) {
-      this.handleError(error, response, next)
+      next(error)
     }
   }
 
@@ -121,44 +100,31 @@ export class PreferencesController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = preferencesParamsSchema.safeParse(request.params)
-      const body = updatePreferenceBodySchema.safeParse(request.body)
-
-      if (!params.success || !body.success) {
-        response.status(400).json({
-          code: 'invalid_request',
-          issues: [
-            ...(params.success ? [] : params.error.issues),
-            ...(body.success ? [] : body.error.issues)
-          ]
-        })
-        return
-      }
-
-      const key = idempotencyKeySchema.safeParse(
-        request.header(APP_HEADER_KEY['Idempotency-Key'])
+      const params = validateRequest(
+        preferencesParamsSchema,
+        request.params
       )
 
-      if (!key.success) {
-        response.status(400).json({
-          code: 'idempotency_key_required',
-          issues: key.error.issues
-        })
-        return
-      }
+      const body = validateRequest(
+        updatePreferenceBodySchema,
+        request.body
+      )
+
+      const idempotencyKey = validateRequest(
+        idempotencyKeySchema,
+        request.header(APP_HEADER_KEY['Idempotency-Key']),
+        'idempotency_key_required'
+      )
 
       const result = await this.idempotencyService.execute(
         {
-          userId: params.data.userId,
+          userId: params.userId,
           operation: 'preferences.update',
-          idempotencyKey: key.data,
-          payload: body.data
+          idempotencyKey,
+          payload: body
         },
         async () => {
-          const preference = await this.service.update(
-            params.data.userId,
-            body.data
-          )
+          const preference = await this.service.update(params.userId, body)
 
           return {
             statusCode: 200,
@@ -175,7 +141,7 @@ export class PreferencesController {
         .status(result.statusCode)
         .json(result.body)
     } catch (error) {
-      this.handleError(error, response, next)
+      next(error)
     }
   }
 
@@ -185,60 +151,18 @@ export class PreferencesController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = preferencesParamsSchema.safeParse(request.params)
-      const body = resetPreferenceBodySchema.safeParse(request.body)
-
-      if (!params.success || !body.success) {
-        response.status(400).json({
-          code: 'invalid_request',
-          issues: [
-            ...(params.success ? [] : params.error.issues),
-            ...(body.success ? [] : body.error.issues)
-          ]
-        })
-        return
-      }
-
-      const preference = await this.service.reset(
-        params.data.userId,
-        body.data
+      const params = validateRequest(
+        preferencesParamsSchema,
+        request.params
       )
+
+      const body = validateRequest(resetPreferenceBodySchema, request.body)
+
+      const preference = await this.service.reset(params.userId, body)
 
       response.status(200).json({ data: preference })
     } catch (error) {
-      this.handleError(error, response, next)
+      next(error)
     }
-  }
-
-  private handleError(
-    error: unknown,
-    response: Response,
-    next: NextFunction
-  ): void {
-    if (error instanceof PreferencesNotInitializedError) {
-      response.status(404).json({
-        code: 'preferences_not_initialized',
-        message: error.message
-      })
-      return
-    }
-
-    if (error instanceof PreferenceReferenceNotFoundError) {
-      response.status(404).json({
-        code: 'preference_reference_not_found',
-        message: error.message
-      })
-      return
-    }
-
-    if (error instanceof DefaultPreferenceNotFoundError) {
-      response.status(404).json({
-        code: 'default_preference_not_found',
-        message: error.message
-      })
-      return
-    }
-
-    next(error)
   }
 }

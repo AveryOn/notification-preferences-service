@@ -1,10 +1,7 @@
 import type { Express, NextFunction, Request, Response } from 'express'
 
 import { Inject, Injectable } from '~/core/di'
-import {
-  NotificationTypeCodeConflictError,
-  NotificationTypeNotFoundError
-} from '~/modules/v1/notification-types/domain/notification-types.types'
+import { validateRequest } from '~/infra/transport/http/request.validator'
 import {
   createNotificationTypeBodySchema,
   notificationTypeParamsSchema,
@@ -45,20 +42,16 @@ export class NotificationTypesController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const body = createNotificationTypeBodySchema.safeParse(request.body)
+      const body = validateRequest(
+        createNotificationTypeBodySchema,
+        request.body
+      )
 
-      if (!body.success) {
-        response
-          .status(400)
-          .json({ code: 'invalid_request', issues: body.error.issues })
-        return
-      }
-
-      const notificationType = await this.service.create(body.data)
+      const notificationType = await this.service.create(body)
 
       response.status(201).json({ data: notificationType })
     } catch (error) {
-      this.handleError(error, response, next)
+      next(error)
     }
   }
 
@@ -68,57 +61,29 @@ export class NotificationTypesController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const params = notificationTypeParamsSchema.safeParse(request.params)
-      const body = updateNotificationTypeBodySchema.safeParse(request.body)
+      const params = validateRequest(
+        notificationTypeParamsSchema,
+        request.params
+      )
 
-      if (!params.success || !body.success) {
-        response.status(400).json({
-          code: 'invalid_request',
-          issues: [
-            ...(params.success ? [] : params.error.issues),
-            ...(body.success ? [] : body.error.issues)
-          ]
-        })
-        return
-      }
+      const body = validateRequest(
+        updateNotificationTypeBodySchema,
+        request.body
+      )
 
       const notificationType = await this.service.update(
-        params.data.notificationTypeId,
+        params.notificationTypeId,
         {
-          code: body.data.code!,
-          isActive: body.data.isActive!,
-          isTransactional: body.data.isTransactional!,
-          name: body.data.name!
+          code: body.code!,
+          isActive: body.isActive!,
+          isTransactional: body.isTransactional!,
+          name: body.name!
         }
       )
 
       response.status(200).json({ data: notificationType })
     } catch (error) {
-      this.handleError(error, response, next)
+      next(error)
     }
-  }
-
-  private handleError(
-    error: unknown,
-    response: Response,
-    next: NextFunction
-  ): void {
-    if (error instanceof NotificationTypeNotFoundError) {
-      response.status(404).json({
-        code: 'notification_type_not_found',
-        message: error.message
-      })
-      return
-    }
-
-    if (error instanceof NotificationTypeCodeConflictError) {
-      response.status(409).json({
-        code: 'notification_type_code_conflict',
-        message: error.message
-      })
-      return
-    }
-
-    next(error)
   }
 }
