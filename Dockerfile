@@ -32,14 +32,14 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 COPY drizzle ./drizzle
-COPY docker-entrypoint.sh ./scripts/docker-entrypoint.sh
+COPY scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 
-RUN chmod +x ./docker-entrypoint.sh
+RUN chmod +x ./scripts/docker-entrypoint.sh
 
 USER node
 
 EXPOSE 3000
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["./scripts/docker-entrypoint.sh"]
 
 CMD ["node", "dist/main.js"]
