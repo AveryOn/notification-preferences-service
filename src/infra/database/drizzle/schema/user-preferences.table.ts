@@ -10,7 +10,10 @@ import {
   createdAt,
   id
 } from '~/infra/database/drizzle/helpers/table.helpers'
-import { notificationTypesTable } from '~/infra/database/drizzle/schema'
+import {
+  channelsTable,
+  notificationTypesTable
+} from '~/infra/database/drizzle/schema'
 
 export const userPreferencesTable = pgTable(
   'user_preferences',
@@ -23,7 +26,12 @@ export const userPreferencesTable = pgTable(
         onDelete: 'restrict',
         onUpdate: 'cascade'
       }),
-    channel: text('channel').notNull(),
+    channelId: uuid('channel_id')
+      .notNull()
+      .references(() => channelsTable.id, {
+        onDelete: 'restrict',
+        onUpdate: 'cascade'
+      }),
     enabled: boolean('enabled').notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt()
@@ -32,7 +40,7 @@ export const userPreferencesTable = pgTable(
     uniqueIndex('up_user_type_channel_unique').on(
       t.userId,
       t.notificationTypeId,
-      t.channel
+      t.channelId
     )
   ]
 )
