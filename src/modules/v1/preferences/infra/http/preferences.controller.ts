@@ -1,5 +1,8 @@
 import type { Express, NextFunction, Request, Response } from 'express'
+import { APP_HEADER_KEY } from '~/core/const'
 import { Inject, Injectable } from '~/core/di'
+import { idempotencyKeySchema } from '~/modules/v1/idempotency/infra/http/idempotency.dto'
+import { IdempotencyServicePort } from '~/modules/v1/idempotency/ports/idempotency.service.port'
 import {
   DefaultPreferenceNotFoundError,
   PreferenceReferenceNotFoundError,
@@ -16,7 +19,10 @@ import { PreferencesServicePort } from '~/modules/v1/preferences/ports/preferenc
 export class PreferencesController {
   constructor(
     @Inject(PreferencesServicePort)
-    private readonly service: PreferencesServicePort
+    private readonly service: PreferencesServicePort,
+
+    @Inject(IdempotencyServicePort)
+    private readonly idempotencyService: IdempotencyServicePort
   ) {}
 
   register(app: Express): void {
@@ -41,9 +47,41 @@ export class PreferencesController {
         return
       }
 
-      const preferences = await this.service.initialize(params.data.userId)
+      const key = idempotencyKeySchema.safeParse(
+        request.header(APP_HEADER_KEY['Idempotency-Key'])
+      )
 
-      response.status(200).json({ data: preferences })
+      if (!key.success) {
+        response.status(400).json({
+          code: 'idempotency_key_required',
+          issues: key.error.issues
+        })
+        return
+      }
+
+      const result = await this.idempotencyService.execute(
+        {
+          userId: params.data.userId,
+          operation: 'preferences.initialize',
+          idempotencyKey: key.data,
+          payload: {}
+        },
+        async () => {
+          const preferences = await this.service.initialize(
+            params.data.userId
+          )
+
+          return { statusCode: 200, body: { data: preferences } }
+        }
+      )
+
+      response
+        .setHeader(
+          APP_HEADER_KEY['Idempotency-Replayed'],
+          String(result.replayed)
+        )
+        .status(result.statusCode)
+        .json(result.body)
     } catch (error) {
       next(error)
     }
