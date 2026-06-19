@@ -69,3 +69,5 @@ postgres-data/
 tmp/
 temp/
 .cache/
+
+project_whole_code_source.json
