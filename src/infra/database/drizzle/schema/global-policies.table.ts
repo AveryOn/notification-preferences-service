@@ -1,4 +1,5 @@
-import { pgTable, text, unique, uuid } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { check, pgTable, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 
 import {
   createdAt,
@@ -6,6 +7,7 @@ import {
   updatedAt
 } from '~/infra/database/drizzle/helpers/table.helpers'
 import { channelsTable } from '~/infra/database/drizzle/schema/channels.table'
+import { globalPolicyDecisionEnum } from '~/infra/database/drizzle/schema/enums'
 import { notificationTypesTable } from '~/infra/database/drizzle/schema/notification-types.table'
 
 export const globalPoliciesTable = pgTable(
@@ -23,21 +25,23 @@ export const globalPoliciesTable = pgTable(
       onDelete: 'restrict',
       onUpdate: 'cascade'
     }),
-    region: text('region'),
-    decision: text('decision').notNull(),
-    reason: text('reason').notNull(),
+    region: varchar('region', { length: 100 }),
+    decision: globalPolicyDecisionEnum('decision').notNull(),
+    reason: varchar('reason', { length: 255 }).notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt()
   },
-  (t) => [
-    unique('global_policies_rule_unique')
-      .on(
-        t.notificationTypeId,
-        t.channelId,
-        t.region,
-        t.decision,
-        t.reason
-      )
-      .nullsNotDistinct()
+  (table) => [
+    unique('global_policies_scope_unique')
+      .on(table.notificationTypeId, table.channelId, table.region)
+      .nullsNotDistinct(),
+    check(
+      'global_policies_region_not_blank_check',
+      sql`${table.region} IS NULL OR char_length(btrim(${table.region})) > 0`
+    ),
+    check(
+      'global_policies_reason_not_blank_check',
+      sql`char_length(btrim(${table.reason})) > 0`
+    )
   ]
 )

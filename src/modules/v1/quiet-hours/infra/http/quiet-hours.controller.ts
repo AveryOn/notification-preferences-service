@@ -8,6 +8,7 @@ import { idempotencyKeySchema } from '~/modules/v1/idempotency/infra/http/idempo
 import { IdempotencyServicePort } from '~/modules/v1/idempotency/ports/idempotency.service.port'
 import {
   quietHoursParamsSchema,
+  toQuietHoursResponse,
   updateQuietHoursBodySchema
 } from '~/modules/v1/quiet-hours/infra/http/quiet-hours.dto'
 import { QuietHoursServicePort } from '~/modules/v1/quiet-hours/ports/quiet-hours.service.port'
@@ -38,7 +39,6 @@ export class QuietHoursController {
         quietHoursParamsSchema,
         request.params
       )
-
       const quietHours = await this.service.getByUserId(params.userId)
 
       if (!quietHours) {
@@ -49,7 +49,7 @@ export class QuietHoursController {
         )
       }
 
-      response.status(200).json({ data: quietHours })
+      response.status(200).json({ data: toQuietHoursResponse(quietHours) })
     } catch (error) {
       next(error)
     }
@@ -65,18 +65,11 @@ export class QuietHoursController {
         quietHoursParamsSchema,
         request.params
       )
-
       const body = validateRequest(
         updateQuietHoursBodySchema,
         request.body
       )
-
-      const idempotencyKey = validateRequest(
-        idempotencyKeySchema,
-        request.header(APP_HEADER_KEY['Idempotency-Key']),
-        'idempotency_key_required'
-      )
-
+      const idempotencyKey = this.getIdempotencyKey(request)
       const result = await this.idempotencyService.execute(
         {
           userId: params.userId,
@@ -85,26 +78,16 @@ export class QuietHoursController {
           payload: body
         },
         async () => {
-          const quietHours = await this.service.update(params.userId, {
-            endTime: body.endTime!,
-            startTime: body.startTime!,
-            timezone: body.timezone!
-          })
+          const quietHours = await this.service.update(params.userId, body)
 
           return {
             statusCode: 200,
-            body: { data: quietHours }
+            body: { data: toQuietHoursResponse(quietHours) }
           }
         }
       )
 
-      response
-        .setHeader(
-          APP_HEADER_KEY['Idempotency-Replayed'],
-          String(result.replayed)
-        )
-        .status(result.statusCode)
-        .json(result.body)
+      this.sendIdempotentResponse(response, result)
     } catch (error) {
       next(error)
     }
@@ -120,20 +103,63 @@ export class QuietHoursController {
         quietHoursParamsSchema,
         request.params
       )
+      const idempotencyKey = this.getIdempotencyKey(request)
+      const result = await this.idempotencyService.execute(
+        {
+          userId: params.userId,
+          operation: 'quiet-hours.delete',
+          idempotencyKey,
+          payload: {}
+        },
+        async () => {
+          const deleted = await this.service.remove(params.userId)
 
-      const deleted = await this.service.remove(params.userId)
+          if (!deleted) {
+            throw new HttpError(
+              404,
+              'quiet_hours_not_found',
+              'Quiet hours were not found'
+            )
+          }
 
-      if (!deleted) {
-        throw new HttpError(
-          404,
-          'quiet_hours_not_found',
-          'Quiet hours were not found'
-        )
-      }
+          return { statusCode: 204, body: null }
+        }
+      )
 
-      response.status(204).send()
+      this.sendIdempotentResponse(response, result)
     } catch (error) {
       next(error)
     }
+  }
+
+  private getIdempotencyKey(request: Request): string {
+    return validateRequest(
+      idempotencyKeySchema,
+      request.header(APP_HEADER_KEY['Idempotency-Key']),
+      'idempotency_key_required'
+    )
+  }
+
+  private sendIdempotentResponse(
+    response: Response,
+    result: {
+      statusCode: number
+      body: unknown
+      replayed: boolean
+    }
+  ): void {
+    response
+      .setHeader(
+        APP_HEADER_KEY['Idempotency-Replayed'],
+        String(result.replayed)
+      )
+      .status(result.statusCode)
+
+    if (result.statusCode === 204) {
+      response.send()
+      return
+    }
+
+    response.json(result.body)
   }
 }

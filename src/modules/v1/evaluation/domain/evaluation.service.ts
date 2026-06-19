@@ -1,8 +1,10 @@
 import type { LoggerPort } from '~/shared/logger/logger.port'
-import {
-  type EvaluateNotificationInput,
-  type EvaluationResult
+import type {
+  EvaluateNotificationInput,
+  EvaluationDecision,
+  EvaluationResult
 } from '~/modules/v1/evaluation/domain/evaluation.types'
+import type { GlobalPolicy } from '~/modules/v1/global-policies/domain/global-policies.types'
 
 import { LOGGER_TOKEN } from '~/app/app.tokens'
 import { Inject, Injectable } from '~/core/di'
@@ -11,6 +13,11 @@ import { EvaluationServicePort } from '~/modules/v1/evaluation/ports/evaluation.
 import { GlobalPoliciesServicePort } from '~/modules/v1/global-policies/ports/global-policies.service.port'
 import { PreferencesServicePort } from '~/modules/v1/preferences/ports/preferences.service.port'
 import { QuietHoursServicePort } from '~/modules/v1/quiet-hours/ports/quiet-hours.service.port'
+
+interface PolicyResolution {
+  decision: EvaluationDecision
+  reasons: string[]
+}
 
 @Injectable()
 export class EvaluationService extends EvaluationServicePort {
@@ -34,38 +41,29 @@ export class EvaluationService extends EvaluationServicePort {
     input: EvaluateNotificationInput
   ): Promise<EvaluationResult> {
     const policies = await this.globalPoliciesService.getMatching({
-      notificationType: input.notificationType,
-      channel: input.channel,
+      notificationTypeId: input.notificationTypeId,
+      channelId: input.channelId,
       region: input.region
     })
+    const policyResolution = this.resolvePolicies(policies)
 
-    const deniedPolicies = policies.filter(
-      (policy) => policy.decision === 'deny'
-    )
-
-    if (deniedPolicies.length > 0) {
-      return this.complete(input, {
-        decision: 'deny',
-        reasons: [
-          ...new Set(deniedPolicies.map((policy) => policy.reason))
-        ]
-      })
+    if (policyResolution?.decision === 'deny') {
+      return this.complete(input, policyResolution)
     }
 
     const preferences = await this.preferencesService.getByUserId(
       input.userId
     )
-
     const preference = preferences.find(
       (item) =>
-        item.notificationTypeCode === input.notificationType &&
-        item.channelCode === input.channel
+        item.notificationTypeId === input.notificationTypeId &&
+        item.channelId === input.channelId
     )
 
     if (!preference) {
       throw new EvaluationPreferenceNotFoundError(
-        input.notificationType,
-        input.channel
+        input.notificationTypeId,
+        input.channelId
       )
     }
 
@@ -79,7 +77,7 @@ export class EvaluationService extends EvaluationServicePort {
     if (preference.isTransactional) {
       return this.complete(input, {
         decision: 'allow',
-        reasons: ['allowed']
+        reasons: this.resolveAllowReasons(policyResolution)
       })
     }
 
@@ -104,8 +102,57 @@ export class EvaluationService extends EvaluationServicePort {
 
     return this.complete(input, {
       decision: 'allow',
-      reasons: ['allowed']
+      reasons: this.resolveAllowReasons(policyResolution)
     })
+  }
+
+  private resolvePolicies(
+    policies: GlobalPolicy[]
+  ): PolicyResolution | null {
+    if (policies.length === 0) {
+      return null
+    }
+
+    const highestSpecificity = Math.max(
+      ...policies.map((policy) => this.getPolicySpecificity(policy))
+    )
+    const highestPriorityPolicies = policies.filter(
+      (policy) => this.getPolicySpecificity(policy) === highestSpecificity
+    )
+    const denyingPolicies = highestPriorityPolicies.filter(
+      (policy) => policy.decision === 'deny'
+    )
+    const effectivePolicies =
+      denyingPolicies.length > 0
+        ? denyingPolicies
+        : highestPriorityPolicies.filter(
+            (policy) => policy.decision === 'allow'
+          )
+
+    return {
+      decision: denyingPolicies.length > 0 ? 'deny' : 'allow',
+      reasons: [
+        ...new Set(effectivePolicies.map((policy) => policy.reason))
+      ]
+    }
+  }
+
+  private getPolicySpecificity(policy: GlobalPolicy): number {
+    return [
+      policy.notificationTypeId,
+      policy.channelId,
+      policy.region
+    ].filter((value) => value !== null).length
+  }
+
+  private resolveAllowReasons(
+    policyResolution: PolicyResolution | null
+  ): string[] {
+    if (policyResolution?.decision === 'allow') {
+      return policyResolution.reasons
+    }
+
+    return ['allowed']
   }
 
   private isInsideQuietHours(
@@ -115,7 +162,6 @@ export class EvaluationService extends EvaluationServicePort {
     timezone: string
   ): boolean {
     const currentMinutes = this.getLocalMinutes(datetime, timezone)
-
     const startMinutes = this.parseTime(startTime)
     const endMinutes = this.parseTime(endTime)
 
@@ -159,8 +205,8 @@ export class EvaluationService extends EvaluationServicePort {
     this.logger.info(
       {
         userId: input.userId,
-        notificationType: input.notificationType,
-        channel: input.channel,
+        notificationTypeId: input.notificationTypeId,
+        channelId: input.channelId,
         region: input.region,
         datetime: input.datetime.toISOString(),
         decision: result.decision,

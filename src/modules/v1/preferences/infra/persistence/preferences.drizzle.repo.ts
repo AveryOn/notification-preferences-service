@@ -12,7 +12,6 @@ import { defaultPreferencesTable } from '~/infra/database/drizzle/schema/default
 import { notificationTypesTable } from '~/infra/database/drizzle/schema/notification-types.table'
 import { userPreferencesTable } from '~/infra/database/drizzle/schema/user-preferences.table'
 import { DatabasePort } from '~/infra/database/ports/database.port'
-
 import { PreferencesRepositoryPort } from '~/modules/v1/preferences/ports/preferences.repo.port'
 
 @Injectable()
@@ -28,7 +27,7 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
     const defaults = await this.database.client
       .select({
         notificationTypeId: defaultPreferencesTable.notificationTypeId,
-        channelCode: channelsTable.code,
+        channelId: defaultPreferencesTable.channelId,
         enabled: defaultPreferencesTable.enabled
       })
       .from(defaultPreferencesTable)
@@ -60,7 +59,7 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
         defaults.map((preference) => ({
           userId,
           notificationTypeId: preference.notificationTypeId,
-          channel: preference.channelCode,
+          channelId: preference.channelId,
           enabled: preference.enabled
         }))
       )
@@ -68,7 +67,7 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
         target: [
           userPreferencesTable.userId,
           userPreferencesTable.notificationTypeId,
-          userPreferencesTable.channel
+          userPreferencesTable.channelId
         ]
       })
 
@@ -80,10 +79,12 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
       .select({
         id: userPreferencesTable.id,
         userId: userPreferencesTable.userId,
+        notificationTypeId: userPreferencesTable.notificationTypeId,
         notificationTypeCode: notificationTypesTable.code,
         notificationTypeName: notificationTypesTable.name,
         isTransactional: notificationTypesTable.isTransactional,
-        channelCode: userPreferencesTable.channel,
+        channelId: userPreferencesTable.channelId,
+        channelCode: channelsTable.code,
         enabled: userPreferencesTable.enabled,
         createdAt: userPreferencesTable.createdAt,
         updatedAt: userPreferencesTable.updatedAt
@@ -96,15 +97,25 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
           notificationTypesTable.id
         )
       )
-      .where(eq(userPreferencesTable.userId, userId))
-      .orderBy(notificationTypesTable.code, userPreferencesTable.channel)
+      .innerJoin(
+        channelsTable,
+        eq(userPreferencesTable.channelId, channelsTable.id)
+      )
+      .where(
+        and(
+          eq(userPreferencesTable.userId, userId),
+          eq(notificationTypesTable.isActive, true),
+          eq(channelsTable.isActive, true)
+        )
+      )
+      .orderBy(notificationTypesTable.code, channelsTable.code)
   }
 
   async update(
     userId: string,
     input: UpdatePreferenceInput
   ): Promise<UserPreference | null> {
-    const [notificationType] = await this.database.client
+    const [notificationTypeRecord] = await this.database.client
       .select({
         id: notificationTypesTable.id,
         code: notificationTypesTable.code,
@@ -114,24 +125,24 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
       .from(notificationTypesTable)
       .where(
         and(
-          eq(notificationTypesTable.code, input.notificationType),
+          eq(notificationTypesTable.id, input.notificationTypeId),
           eq(notificationTypesTable.isActive, true)
         )
       )
       .limit(1)
 
-    const [channel] = await this.database.client
-      .select({ code: channelsTable.code })
+    const [channelRecord] = await this.database.client
+      .select({ id: channelsTable.id, code: channelsTable.code })
       .from(channelsTable)
       .where(
         and(
-          eq(channelsTable.code, input.channel),
+          eq(channelsTable.id, input.channelId),
           eq(channelsTable.isActive, true)
         )
       )
       .limit(1)
 
-    if (!notificationType || !channel) {
+    if (!notificationTypeRecord || !channelRecord) {
       return null
     }
 
@@ -139,15 +150,15 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
       .insert(userPreferencesTable)
       .values({
         userId,
-        notificationTypeId: notificationType.id,
-        channel: channel.code,
+        notificationTypeId: notificationTypeRecord.id,
+        channelId: channelRecord.id,
         enabled: input.enabled
       })
       .onConflictDoUpdate({
         target: [
           userPreferencesTable.userId,
           userPreferencesTable.notificationTypeId,
-          userPreferencesTable.channel
+          userPreferencesTable.channelId
         ],
         set: { enabled: input.enabled, updatedAt: new Date() }
       })
@@ -160,10 +171,12 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
     return {
       id: record.id,
       userId: record.userId,
-      notificationTypeCode: notificationType.code,
-      notificationTypeName: notificationType.name,
-      isTransactional: notificationType.isTransactional,
-      channelCode: record.channel,
+      notificationTypeId: record.notificationTypeId,
+      notificationTypeCode: notificationTypeRecord.code,
+      notificationTypeName: notificationTypeRecord.name,
+      isTransactional: notificationTypeRecord.isTransactional,
+      channelId: record.channelId,
+      channelCode: channelRecord.code,
       enabled: record.enabled,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
@@ -180,6 +193,7 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
         notificationTypeCode: notificationTypesTable.code,
         notificationTypeName: notificationTypesTable.name,
         isTransactional: notificationTypesTable.isTransactional,
+        channelId: channelsTable.id,
         channelCode: channelsTable.code,
         enabled: defaultPreferencesTable.enabled
       })
@@ -197,8 +211,13 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
       )
       .where(
         and(
-          eq(notificationTypesTable.code, selector.notificationType),
-          eq(channelsTable.code, selector.channel)
+          eq(
+            defaultPreferencesTable.notificationTypeId,
+            selector.notificationTypeId
+          ),
+          eq(defaultPreferencesTable.channelId, selector.channelId),
+          eq(notificationTypesTable.isActive, true),
+          eq(channelsTable.isActive, true)
         )
       )
       .limit(1)
@@ -212,14 +231,14 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
       .values({
         userId,
         notificationTypeId: defaultPreference.notificationTypeId,
-        channel: defaultPreference.channelCode,
+        channelId: defaultPreference.channelId,
         enabled: defaultPreference.enabled
       })
       .onConflictDoUpdate({
         target: [
           userPreferencesTable.userId,
           userPreferencesTable.notificationTypeId,
-          userPreferencesTable.channel
+          userPreferencesTable.channelId
         ],
         set: { enabled: defaultPreference.enabled, updatedAt: new Date() }
       })
@@ -232,10 +251,12 @@ export class PreferencesDrizzleRepository extends PreferencesRepositoryPort {
     return {
       id: record.id,
       userId: record.userId,
+      notificationTypeId: record.notificationTypeId,
       notificationTypeCode: defaultPreference.notificationTypeCode,
       notificationTypeName: defaultPreference.notificationTypeName,
       isTransactional: defaultPreference.isTransactional,
-      channelCode: record.channel,
+      channelId: record.channelId,
+      channelCode: defaultPreference.channelCode,
       enabled: record.enabled,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt

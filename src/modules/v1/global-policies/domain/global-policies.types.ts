@@ -2,8 +2,8 @@ export type GlobalPolicyDecision = 'allow' | 'deny'
 
 export interface GlobalPolicy {
   id: string
-  notificationType: string | null
-  channel: string | null
+  notificationTypeId: string | null
+  channelId: string | null
   region: string | null
   decision: GlobalPolicyDecision
   reason: string
@@ -12,16 +12,16 @@ export interface GlobalPolicy {
 }
 
 export interface CreateGlobalPolicyInput {
-  notificationType?: string | null
-  channel?: string | null
+  notificationTypeId?: string | null
+  channelId?: string | null
   region?: string | null
   decision: GlobalPolicyDecision
   reason: string
 }
 
 export interface MatchGlobalPoliciesInput {
-  notificationType: string
-  channel: string
+  notificationTypeId: string
+  channelId: string
   region: string
 }
 

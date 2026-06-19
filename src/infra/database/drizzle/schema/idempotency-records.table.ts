@@ -5,7 +5,8 @@ import {
   pgTable,
   text,
   timestamp,
-  unique
+  unique,
+  varchar
 } from 'drizzle-orm/pg-core'
 
 import {
@@ -13,16 +14,21 @@ import {
   id,
   updatedAt
 } from '~/infra/database/drizzle/helpers/table.helpers'
+import { idempotencyStatusEnum } from '~/infra/database/drizzle/schema/enums'
 
 export const idempotencyRecordsTable = pgTable(
   'idempotency_records',
   {
     id: id(),
     userId: text('user_id').notNull(),
-    operation: text('operation').notNull(),
-    idempotencyKey: text('idempotency_key').notNull(),
-    requestHash: text('request_hash').notNull(),
-    status: text('status').notNull().default('processing'),
+    operation: varchar('operation', { length: 100 }).notNull(),
+    idempotencyKey: varchar('idempotency_key', {
+      length: 255
+    }).notNull(),
+    requestHash: varchar('request_hash', { length: 64 }).notNull(),
+    status: idempotencyStatusEnum('status')
+      .notNull()
+      .default('processing'),
     responseStatus: integer('response_status'),
     responseBody: jsonb('response_body'),
     expiresAt: timestamp('expires_at', {
@@ -31,13 +37,12 @@ export const idempotencyRecordsTable = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt()
   },
-  (t) => [
+  (table) => [
     unique('idempotency_records_scope_unique').on(
-      t.userId,
-      t.operation,
-      t.idempotencyKey
+      table.userId,
+      table.operation,
+      table.idempotencyKey
     ),
-
-    index('idempotency_records_expires_at_index').on(t.expiresAt)
+    index('idempotency_records_expires_at_index').on(table.expiresAt)
   ]
 )

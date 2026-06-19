@@ -15,6 +15,13 @@
       "when": 1781824258707,
       "tag": "0001_seed-readonly-data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781860424323,
+      "tag": "0002_align-contracts",
+      "breakpoints": true
     }
   ]
 }

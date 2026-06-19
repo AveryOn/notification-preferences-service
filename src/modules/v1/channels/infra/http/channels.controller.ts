@@ -5,6 +5,7 @@ import { validateRequest } from '~/infra/transport/http/request.validator'
 import {
   channelParamsSchema,
   createChannelBodySchema,
+  toChannelResponse,
   updateChannelBodySchema
 } from '~/modules/v1/channels/infra/http/channels.dto'
 import { ChannelsServicePort } from '~/modules/v1/channels/ports/channels.service.port'
@@ -30,7 +31,9 @@ export class ChannelsController {
     try {
       const channels = await this.service.getAll()
 
-      response.status(200).json({ data: channels })
+      response.status(200).json({
+        data: channels.map(toChannelResponse)
+      })
     } catch (error) {
       next(error)
     }
@@ -43,10 +46,9 @@ export class ChannelsController {
   ): Promise<void> => {
     try {
       const body = validateRequest(createChannelBodySchema, request.body)
+      const channelEntity = await this.service.create(body)
 
-      const channel = await this.service.create(body)
-
-      response.status(201).json({ data: channel })
+      response.status(201).json({ data: toChannelResponse(channelEntity) })
     } catch (error) {
       next(error)
     }
@@ -59,16 +61,14 @@ export class ChannelsController {
   ): Promise<void> => {
     try {
       const params = validateRequest(channelParamsSchema, request.params)
-
       const body = validateRequest(updateChannelBodySchema, request.body)
-
-      const channel = await this.service.update(params.channelId, {
-        code: body.code!,
-        isActive: body.isActive!,
-        name: body.name!
+      const channelEntity = await this.service.update(params.channelId, {
+        ...(body.code !== undefined ? { code: body.code } : {}),
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.isActive !== undefined ? { isActive: body.isActive } : {})
       })
 
-      response.status(200).json({ data: channel })
+      response.status(200).json({ data: toChannelResponse(channelEntity) })
     } catch (error) {
       next(error)
     }

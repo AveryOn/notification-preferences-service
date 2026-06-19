@@ -1,7 +1,7 @@
 import type { LoggerPort } from '~/shared/logger/logger.port'
-import {
-  type QuietHours,
-  type UpdateQuietHoursInput
+import type {
+  QuietHours,
+  UpdateQuietHoursInput
 } from '~/modules/v1/quiet-hours/domain/quiet-hours.types'
 
 import { LOGGER_TOKEN } from '~/app/app.tokens'
@@ -10,7 +10,7 @@ import { QuietHoursValidationError } from '~/modules/v1/quiet-hours/domain/quiet
 import { QuietHoursRepositoryPort } from '~/modules/v1/quiet-hours/ports/quiet-hours.repo.port'
 import { QuietHoursServicePort } from '~/modules/v1/quiet-hours/ports/quiet-hours.service.port'
 
-const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/
+const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/
 
 @Injectable()
 export class QuietHoursService extends QuietHoursServicePort {
@@ -34,26 +34,11 @@ export class QuietHoursService extends QuietHoursServicePort {
   ): Promise<QuietHours> {
     const current = await this.repository.findByUserId(userId)
 
-    const startTime = input.startTime ?? current?.startTime
-    const endTime = input.endTime ?? current?.endTime
-    const timezone = input.timezone ?? current?.timezone
+    this.validateTime(input.startTime, 'startTime')
+    this.validateTime(input.endTime, 'endTime')
+    this.validateTimezone(input.timezone)
 
-    if (!startTime || !endTime || !timezone) {
-      throw new QuietHoursValidationError(
-        'startTime, endTime and timezone are required for initial setup'
-      )
-    }
-
-    this.validateTime(startTime, 'startTime')
-    this.validateTime(endTime, 'endTime')
-    this.validateTimezone(timezone)
-
-    const quietHours = await this.repository.upsert({
-      userId,
-      startTime,
-      endTime,
-      timezone
-    })
+    const quietHours = await this.repository.upsert({ userId, ...input })
 
     this.logger.info(
       {
@@ -96,7 +81,9 @@ export class QuietHoursService extends QuietHoursServicePort {
 
   private validateTime(value: string, field: string): void {
     if (!TIME_PATTERN.test(value)) {
-      throw new QuietHoursValidationError(`${field} must use HH:mm format`)
+      throw new QuietHoursValidationError(
+        `${field} must use HH:mm:ss format`
+      )
     }
   }
 

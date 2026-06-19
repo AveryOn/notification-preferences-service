@@ -8,6 +8,7 @@ import { IdempotencyServicePort } from '~/modules/v1/idempotency/ports/idempoten
 import {
   preferencesParamsSchema,
   resetPreferenceBodySchema,
+  toUserPreferenceResponse,
   updatePreferenceBodySchema
 } from '~/modules/v1/preferences/infra/http/preferences.dto'
 import { PreferencesServicePort } from '~/modules/v1/preferences/ports/preferences.service.port'
@@ -39,13 +40,7 @@ export class PreferencesController {
         preferencesParamsSchema,
         request.params
       )
-
-      const idempotencyKey = validateRequest(
-        idempotencyKeySchema,
-        request.header(APP_HEADER_KEY['Idempotency-Key']),
-        'idempotency_key_required'
-      )
-
+      const idempotencyKey = this.getIdempotencyKey(request)
       const result = await this.idempotencyService.execute(
         {
           userId: params.userId,
@@ -58,18 +53,14 @@ export class PreferencesController {
 
           return {
             statusCode: 200,
-            body: { data: preferences }
+            body: {
+              data: preferences.map(toUserPreferenceResponse)
+            }
           }
         }
       )
 
-      response
-        .setHeader(
-          APP_HEADER_KEY['Idempotency-Replayed'],
-          String(result.replayed)
-        )
-        .status(result.statusCode)
-        .json(result.body)
+      this.sendIdempotentResponse(response, result)
     } catch (error) {
       next(error)
     }
@@ -85,10 +76,11 @@ export class PreferencesController {
         preferencesParamsSchema,
         request.params
       )
-
       const preferences = await this.service.getByUserId(params.userId)
 
-      response.status(200).json({ data: preferences })
+      response.status(200).json({
+        data: preferences.map(toUserPreferenceResponse)
+      })
     } catch (error) {
       next(error)
     }
@@ -104,18 +96,11 @@ export class PreferencesController {
         preferencesParamsSchema,
         request.params
       )
-
       const body = validateRequest(
         updatePreferenceBodySchema,
         request.body
       )
-
-      const idempotencyKey = validateRequest(
-        idempotencyKeySchema,
-        request.header(APP_HEADER_KEY['Idempotency-Key']),
-        'idempotency_key_required'
-      )
-
+      const idempotencyKey = this.getIdempotencyKey(request)
       const result = await this.idempotencyService.execute(
         {
           userId: params.userId,
@@ -128,18 +113,12 @@ export class PreferencesController {
 
           return {
             statusCode: 200,
-            body: { data: preference }
+            body: { data: toUserPreferenceResponse(preference) }
           }
         }
       )
 
-      response
-        .setHeader(
-          APP_HEADER_KEY['Idempotency-Replayed'],
-          String(result.replayed)
-        )
-        .status(result.statusCode)
-        .json(result.body)
+      this.sendIdempotentResponse(response, result)
     } catch (error) {
       next(error)
     }
@@ -155,14 +134,53 @@ export class PreferencesController {
         preferencesParamsSchema,
         request.params
       )
-
       const body = validateRequest(resetPreferenceBodySchema, request.body)
+      const idempotencyKey = this.getIdempotencyKey(request)
+      const result = await this.idempotencyService.execute(
+        {
+          userId: params.userId,
+          operation: 'preferences.reset',
+          idempotencyKey,
+          payload: body
+        },
+        async () => {
+          const preference = await this.service.reset(params.userId, body)
 
-      const preference = await this.service.reset(params.userId, body)
+          return {
+            statusCode: 200,
+            body: { data: toUserPreferenceResponse(preference) }
+          }
+        }
+      )
 
-      response.status(200).json({ data: preference })
+      this.sendIdempotentResponse(response, result)
     } catch (error) {
       next(error)
     }
+  }
+
+  private getIdempotencyKey(request: Request): string {
+    return validateRequest(
+      idempotencyKeySchema,
+      request.header(APP_HEADER_KEY['Idempotency-Key']),
+      'idempotency_key_required'
+    )
+  }
+
+  private sendIdempotentResponse(
+    response: Response,
+    result: {
+      statusCode: number
+      body: unknown
+      replayed: boolean
+    }
+  ): void {
+    response
+      .setHeader(
+        APP_HEADER_KEY['Idempotency-Replayed'],
+        String(result.replayed)
+      )
+      .status(result.statusCode)
+      .json(result.body)
   }
 }

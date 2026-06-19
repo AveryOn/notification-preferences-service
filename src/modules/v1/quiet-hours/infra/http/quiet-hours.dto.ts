@@ -1,32 +1,59 @@
-import { z } from 'zod'
+import type { QuietHours } from '~/modules/v1/quiet-hours/domain/quiet-hours.types'
 
-export const quietHoursParamsSchema = z.object({
-  userId: z.string().min(1, 'userId is required')
-})
+import { z } from 'zod'
+import {
+  ianaTimezoneSchema,
+  isoDateTimeSchema,
+  normalizeTimeWithSeconds,
+  timeWithSecondsSchema,
+  toIsoDateTime,
+  userIdSchema
+} from '~/infra/transport/http/http.schemas'
+
+export const quietHoursParamsSchema = z
+  .object({
+    userId: userIdSchema
+  })
+  .strict()
 
 export const updateQuietHoursBodySchema = z
   .object({
-    startTime: z
-      .string()
-      .regex(
-        /^(?:[01]\d|2[0-3]):[0-5]\d$/,
-        'startTime must use HH:mm format'
-      )
-      .optional(),
-    endTime: z
-      .string()
-      .regex(
-        /^(?:[01]\d|2[0-3]):[0-5]\d$/,
-        'endTime must use HH:mm format'
-      )
-      .optional(),
-    timezone: z.string().min(1).optional()
+    startTime: timeWithSecondsSchema,
+    endTime: timeWithSecondsSchema,
+    timezone: ianaTimezoneSchema
   })
-  .refine((value) => Object.keys(value).length > 0, {
-    message: 'At least one field is required'
+  .strict()
+
+export const quietHoursResponseSchema = z
+  .object({
+    id: z.uuid(),
+    userId: userIdSchema,
+    startTime: timeWithSecondsSchema,
+    endTime: timeWithSecondsSchema,
+    timezone: ianaTimezoneSchema,
+    createdAt: isoDateTimeSchema,
+    updatedAt: isoDateTimeSchema
   })
+  .strict()
 
 export type QuietHoursParamsDto = z.infer<typeof quietHoursParamsSchema>
 export type UpdateQuietHoursBodyDto = z.infer<
   typeof updateQuietHoursBodySchema
 >
+export type QuietHoursResponseDto = z.infer<
+  typeof quietHoursResponseSchema
+>
+
+export function toQuietHoursResponse(
+  quietHours: QuietHours
+): QuietHoursResponseDto {
+  return quietHoursResponseSchema.parse({
+    id: quietHours.id,
+    userId: quietHours.userId,
+    startTime: normalizeTimeWithSeconds(quietHours.startTime),
+    endTime: normalizeTimeWithSeconds(quietHours.endTime),
+    timezone: quietHours.timezone,
+    createdAt: toIsoDateTime(quietHours.createdAt),
+    updatedAt: toIsoDateTime(quietHours.updatedAt)
+  })
+}

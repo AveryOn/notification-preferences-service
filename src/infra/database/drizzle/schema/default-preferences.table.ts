@@ -4,10 +4,8 @@ import {
   createdAt,
   id
 } from '~/infra/database/drizzle/helpers/table.helpers'
-import {
-  channelsTable,
-  notificationTypesTable
-} from '~/infra/database/drizzle/schema'
+import { channelsTable } from '~/infra/database/drizzle/schema/channels.table'
+import { notificationTypesTable } from '~/infra/database/drizzle/schema/notification-types.table'
 
 export const defaultPreferencesTable = pgTable(
   'default_preferences',

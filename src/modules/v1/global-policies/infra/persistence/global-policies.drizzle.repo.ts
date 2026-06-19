@@ -1,16 +1,16 @@
+import type { Database } from '~/infra/database/drizzle'
+import type {
+  CreateGlobalPolicyInput,
+  GlobalPolicy,
+  MatchGlobalPoliciesInput
+} from '~/modules/v1/global-policies/domain/global-policies.types'
+
 import { and, eq, isNull, or } from 'drizzle-orm'
 import { Inject, Injectable } from '~/core/di/di.container'
-import type { Database } from '~/infra/database/drizzle'
 import { channelsTable } from '~/infra/database/drizzle/schema/channels.table'
 import { globalPoliciesTable } from '~/infra/database/drizzle/schema/global-policies.table'
 import { notificationTypesTable } from '~/infra/database/drizzle/schema/notification-types.table'
 import { DatabasePort } from '~/infra/database/ports/database.port'
-import type {
-  CreateGlobalPolicyInput,
-  GlobalPolicy,
-  GlobalPolicyDecision,
-  MatchGlobalPoliciesInput
-} from '~/modules/v1/global-policies/domain/global-policies.types'
 import { GlobalPoliciesRepositoryPort } from '~/modules/v1/global-policies/ports/global-policies.repo.port'
 
 @Injectable()
@@ -25,17 +25,17 @@ export class GlobalPoliciesDrizzleRepository extends GlobalPoliciesRepositoryPor
   async create(
     input: CreateGlobalPolicyInput
   ): Promise<GlobalPolicy | null> {
-    const notificationTypeId = await this.resolveNotificationTypeId(
-      input.notificationType ?? null
-    )
+    const notificationTypeId = input.notificationTypeId ?? null
+    const channelId = input.channelId ?? null
 
-    if (input.notificationType && !notificationTypeId) {
+    if (
+      notificationTypeId &&
+      !(await this.isNotificationTypeActive(notificationTypeId))
+    ) {
       return null
     }
 
-    const channelId = await this.resolveChannelId(input.channel ?? null)
-
-    if (input.channel && !channelId) {
+    if (channelId && !(await this.isChannelActive(channelId))) {
       return null
     }
 
@@ -52,11 +52,13 @@ export class GlobalPoliciesDrizzleRepository extends GlobalPoliciesRepositoryPor
         target: [
           globalPoliciesTable.notificationTypeId,
           globalPoliciesTable.channelId,
-          globalPoliciesTable.region,
-          globalPoliciesTable.decision,
-          globalPoliciesTable.reason
+          globalPoliciesTable.region
         ],
-        set: { updatedAt: new Date() }
+        set: {
+          decision: input.decision,
+          reason: input.reason,
+          updatedAt: new Date()
+        }
       })
       .returning()
 
@@ -66,22 +68,22 @@ export class GlobalPoliciesDrizzleRepository extends GlobalPoliciesRepositoryPor
 
     return {
       id: record.id,
-      notificationType: input.notificationType ?? null,
-      channel: input.channel ?? null,
+      notificationTypeId: record.notificationTypeId,
+      channelId: record.channelId,
       region: record.region,
-      decision: record.decision as GlobalPolicyDecision,
+      decision: record.decision,
       reason: record.reason,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
     }
   }
 
-  async findAll(): Promise<GlobalPolicy[]> {
-    const records = await this.database.client
+  findAll(): Promise<GlobalPolicy[]> {
+    return this.database.client
       .select({
         id: globalPoliciesTable.id,
-        notificationType: notificationTypesTable.code,
-        channel: channelsTable.code,
+        notificationTypeId: globalPoliciesTable.notificationTypeId,
+        channelId: globalPoliciesTable.channelId,
         region: globalPoliciesTable.region,
         decision: globalPoliciesTable.decision,
         reason: globalPoliciesTable.reason,
@@ -89,33 +91,15 @@ export class GlobalPoliciesDrizzleRepository extends GlobalPoliciesRepositoryPor
         updatedAt: globalPoliciesTable.updatedAt
       })
       .from(globalPoliciesTable)
-      .leftJoin(
-        notificationTypesTable,
-        eq(
-          globalPoliciesTable.notificationTypeId,
-          notificationTypesTable.id
-        )
-      )
-      .leftJoin(
-        channelsTable,
-        eq(globalPoliciesTable.channelId, channelsTable.id)
-      )
       .orderBy(globalPoliciesTable.createdAt)
-
-    return records.map((record) => ({
-      ...record,
-      decision: record.decision as GlobalPolicyDecision
-    }))
   }
 
-  async findMatching(
-    input: MatchGlobalPoliciesInput
-  ): Promise<GlobalPolicy[]> {
-    const records = await this.database.client
+  findMatching(input: MatchGlobalPoliciesInput): Promise<GlobalPolicy[]> {
+    return this.database.client
       .select({
         id: globalPoliciesTable.id,
-        notificationType: notificationTypesTable.code,
-        channel: channelsTable.code,
+        notificationTypeId: globalPoliciesTable.notificationTypeId,
+        channelId: globalPoliciesTable.channelId,
         region: globalPoliciesTable.region,
         decision: globalPoliciesTable.decision,
         reason: globalPoliciesTable.reason,
@@ -138,11 +122,20 @@ export class GlobalPoliciesDrizzleRepository extends GlobalPoliciesRepositoryPor
         and(
           or(
             isNull(globalPoliciesTable.notificationTypeId),
-            eq(notificationTypesTable.code, input.notificationType)
+            and(
+              eq(
+                globalPoliciesTable.notificationTypeId,
+                input.notificationTypeId
+              ),
+              eq(notificationTypesTable.isActive, true)
+            )
           ),
           or(
             isNull(globalPoliciesTable.channelId),
-            eq(channelsTable.code, input.channel)
+            and(
+              eq(globalPoliciesTable.channelId, input.channelId),
+              eq(channelsTable.isActive, true)
+            )
           ),
           or(
             isNull(globalPoliciesTable.region),
@@ -151,11 +144,6 @@ export class GlobalPoliciesDrizzleRepository extends GlobalPoliciesRepositoryPor
         )
       )
       .orderBy(globalPoliciesTable.createdAt)
-
-    return records.map((record) => ({
-      ...record,
-      decision: record.decision as GlobalPolicyDecision
-    }))
   }
 
   async deleteById(id: string): Promise<boolean> {
@@ -167,38 +155,30 @@ export class GlobalPoliciesDrizzleRepository extends GlobalPoliciesRepositoryPor
     return deleted.length > 0
   }
 
-  private async resolveNotificationTypeId(
-    code: string | null
-  ): Promise<string | null> {
-    if (!code) return null
-
+  private async isNotificationTypeActive(id: string): Promise<boolean> {
     const [record] = await this.database.client
       .select({ id: notificationTypesTable.id })
       .from(notificationTypesTable)
       .where(
         and(
-          eq(notificationTypesTable.code, code),
+          eq(notificationTypesTable.id, id),
           eq(notificationTypesTable.isActive, true)
         )
       )
       .limit(1)
 
-    return record?.id ?? null
+    return record !== undefined
   }
 
-  private async resolveChannelId(
-    code: string | null
-  ): Promise<string | null> {
-    if (!code) return null
-
+  private async isChannelActive(id: string): Promise<boolean> {
     const [record] = await this.database.client
       .select({ id: channelsTable.id })
       .from(channelsTable)
       .where(
-        and(eq(channelsTable.code, code), eq(channelsTable.isActive, true))
+        and(eq(channelsTable.id, id), eq(channelsTable.isActive, true))
       )
       .limit(1)
 
-    return record?.id ?? null
+    return record !== undefined
   }
 }

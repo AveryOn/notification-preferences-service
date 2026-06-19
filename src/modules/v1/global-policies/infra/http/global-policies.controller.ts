@@ -4,7 +4,8 @@ import { Inject, Injectable } from '~/core/di/di.container'
 import { validateRequest } from '~/infra/transport/http/request.validator'
 import {
   createGlobalPolicyBodySchema,
-  globalPolicyParamsSchema
+  globalPolicyParamsSchema,
+  toGlobalPolicyResponse
 } from '~/modules/v1/global-policies/infra/http/global-policies.dto'
 import { GlobalPoliciesServicePort } from '~/modules/v1/global-policies/ports/global-policies.service.port'
 
@@ -29,7 +30,9 @@ export class GlobalPoliciesController {
     try {
       const policies = await this.service.getAll()
 
-      response.status(200).json({ data: policies })
+      response.status(200).json({
+        data: policies.map(toGlobalPolicyResponse)
+      })
     } catch (error) {
       next(error)
     }
@@ -45,16 +48,19 @@ export class GlobalPoliciesController {
         createGlobalPolicyBodySchema,
         request.body
       )
-
       const policy = await this.service.create({
         decision: body.decision,
         reason: body.reason,
-        channel: body.channel!,
-        notificationType: body.notificationType!,
-        region: body.region!
+        ...(body.notificationTypeId !== undefined
+          ? { notificationTypeId: body.notificationTypeId }
+          : {}),
+        ...(body.channelId !== undefined
+          ? { channelId: body.channelId }
+          : {}),
+        ...(body.region !== undefined ? { region: body.region } : {})
       })
 
-      response.status(201).json({ data: policy })
+      response.status(201).json({ data: toGlobalPolicyResponse(policy) })
     } catch (error) {
       next(error)
     }

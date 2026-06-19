@@ -6,14 +6,12 @@ import {
   uuid
 } from 'drizzle-orm/pg-core'
 import {
-  updatedAt,
   createdAt,
-  id
+  id,
+  updatedAt
 } from '~/infra/database/drizzle/helpers/table.helpers'
-import {
-  channelsTable,
-  notificationTypesTable
-} from '~/infra/database/drizzle/schema'
+import { channelsTable } from '~/infra/database/drizzle/schema/channels.table'
+import { notificationTypesTable } from '~/infra/database/drizzle/schema/notification-types.table'
 
 export const userPreferencesTable = pgTable(
   'user_preferences',
@@ -36,11 +34,11 @@ export const userPreferencesTable = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt()
   },
-  (t) => [
+  (table) => [
     uniqueIndex('up_user_type_channel_unique').on(
-      t.userId,
-      t.notificationTypeId,
-      t.channelId
+      table.userId,
+      table.notificationTypeId,
+      table.channelId
     )
   ]
 )

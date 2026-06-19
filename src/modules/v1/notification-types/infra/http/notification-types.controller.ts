@@ -5,6 +5,7 @@ import { validateRequest } from '~/infra/transport/http/request.validator'
 import {
   createNotificationTypeBodySchema,
   notificationTypeParamsSchema,
+  toNotificationTypeResponse,
   updateNotificationTypeBodySchema
 } from '~/modules/v1/notification-types/infra/http/notification-types.dto'
 import { NotificationTypesServicePort } from '~/modules/v1/notification-types/ports/notification-types.service.port'
@@ -30,7 +31,9 @@ export class NotificationTypesController {
     try {
       const notificationTypes = await this.service.getAll()
 
-      response.status(200).json({ data: notificationTypes })
+      response.status(200).json({
+        data: notificationTypes.map(toNotificationTypeResponse)
+      })
     } catch (error) {
       next(error)
     }
@@ -46,10 +49,11 @@ export class NotificationTypesController {
         createNotificationTypeBodySchema,
         request.body
       )
+      const notificationTypeEntity = await this.service.create(body)
 
-      const notificationType = await this.service.create(body)
-
-      response.status(201).json({ data: notificationType })
+      response.status(201).json({
+        data: toNotificationTypeResponse(notificationTypeEntity)
+      })
     } catch (error) {
       next(error)
     }
@@ -65,23 +69,27 @@ export class NotificationTypesController {
         notificationTypeParamsSchema,
         request.params
       )
-
       const body = validateRequest(
         updateNotificationTypeBodySchema,
         request.body
       )
-
-      const notificationType = await this.service.update(
+      const notificationTypeEntity = await this.service.update(
         params.notificationTypeId,
         {
-          code: body.code!,
-          isActive: body.isActive!,
-          isTransactional: body.isTransactional!,
-          name: body.name!
+          ...(body.code !== undefined ? { code: body.code } : {}),
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.isTransactional !== undefined
+            ? { isTransactional: body.isTransactional }
+            : {}),
+          ...(body.isActive !== undefined
+            ? { isActive: body.isActive }
+            : {})
         }
       )
 
-      response.status(200).json({ data: notificationType })
+      response.status(200).json({
+        data: toNotificationTypeResponse(notificationTypeEntity)
+      })
     } catch (error) {
       next(error)
     }

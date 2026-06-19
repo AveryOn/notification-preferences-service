@@ -1,9 +1,11 @@
 export interface UserPreference {
   id: string
   userId: string
+  notificationTypeId: string
   notificationTypeCode: string
   notificationTypeName: string
   isTransactional: boolean
+  channelId: string
   channelCode: string
   enabled: boolean
   createdAt: Date
@@ -11,8 +13,8 @@ export interface UserPreference {
 }
 
 export interface PreferenceSelector {
-  notificationType: string
-  channel: string
+  notificationTypeId: string
+  channelId: string
 }
 
 export interface UpdatePreferenceInput extends PreferenceSelector {

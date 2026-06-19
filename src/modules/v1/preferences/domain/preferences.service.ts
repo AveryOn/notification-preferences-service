@@ -70,8 +70,10 @@ export class PreferencesService extends PreferencesServicePort {
       {
         event: 'notification_preference_updated',
         userId,
-        notificationType: preference.notificationTypeCode,
-        channel: preference.channelCode,
+        notificationTypeId: preference.notificationTypeId,
+        notificationTypeCode: preference.notificationTypeCode,
+        channelId: preference.channelId,
+        channelCode: preference.channelCode,
         enabled: preference.enabled
       },
       'Notification preference updated'
@@ -101,8 +103,10 @@ export class PreferencesService extends PreferencesServicePort {
       {
         event: 'notification_preference_reset',
         userId,
-        notificationType: preference.notificationTypeCode,
-        channel: preference.channelCode,
+        notificationTypeId: preference.notificationTypeId,
+        notificationTypeCode: preference.notificationTypeCode,
+        channelId: preference.channelId,
+        channelCode: preference.channelCode,
         enabled: preference.enabled
       },
       'Notification preference reset to default'

@@ -9,16 +9,13 @@ export interface QuietHours {
 }
 
 export interface UpdateQuietHoursInput {
-  startTime?: string
-  endTime?: string
-  timezone?: string
-}
-
-export interface SaveQuietHoursInput {
-  userId: string
   startTime: string
   endTime: string
   timezone: string
+}
+
+export interface SaveQuietHoursInput extends UpdateQuietHoursInput {
+  userId: string
 }
 
 export class QuietHoursValidationError extends Error {

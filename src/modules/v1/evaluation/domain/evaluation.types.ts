@@ -2,8 +2,8 @@ export type EvaluationDecision = 'allow' | 'deny'
 
 export interface EvaluateNotificationInput {
   userId: string
-  notificationType: string
-  channel: string
+  notificationTypeId: string
+  channelId: string
   region: string
   datetime: Date
 }
@@ -16,7 +16,9 @@ export interface EvaluationResult {
 export class EvaluationPreferenceNotFoundError extends Error {
   override readonly name = 'EvaluationPreferenceNotFoundError'
 
-  constructor(notificationType: string, channel: string) {
-    super(`Preference was not found for ${notificationType}:${channel}`)
+  constructor(notificationTypeId: string, channelId: string) {
+    super(
+      `Preference was not found for notificationTypeId=${notificationTypeId}, channelId=${channelId}`
+    )
   }
 }

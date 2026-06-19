@@ -3,8 +3,7 @@ import type {
   CompleteIdempotencyRecordInput,
   CreateIdempotencyRecordInput,
   IdempotencyRecord,
-  IdempotencyScope,
-  IdempotencyStatus
+  IdempotencyScope
 } from '~/modules/v1/idempotency/domain/idempotency.types'
 
 import { and, eq, lte } from 'drizzle-orm'
@@ -108,7 +107,7 @@ export class IdempotencyDrizzleRepository extends IdempotencyRepositoryPort {
       operation: record.operation,
       idempotencyKey: record.idempotencyKey,
       requestHash: record.requestHash,
-      status: record.status as IdempotencyStatus,
+      status: record.status,
       responseStatus: record.responseStatus,
       responseBody: record.responseBody,
       expiresAt: record.expiresAt,
