@@ -24,3 +24,4 @@ temp/
 .cache/
 
 package-lock.json
+project_whole_code_source.json
