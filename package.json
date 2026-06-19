@@ -23,10 +23,13 @@
     "prod:docker:up": "docker compose --env-file .env.production -f compose.production.yaml up --build -d",
     "prod:docker:down": "docker compose --env-file .env.production -f compose.production.yaml down",
     "prod:docker:renew": "docker compose --env-file .env.production -f compose.production.yaml up --build --renew-anon-volumes -d",
+    "db:seed:test": "tsx scripts/run-seed.ts seeds/pg/test-data.seed.sql",
     "db:generate": "NODE_ENV=development drizzle-kit generate",
     "db:migrate": "NODE_ENV=development drizzle-kit migrate",
     "db:studio": "NODE_ENV=development drizzle-kit studio",
     "db:migrate:production": "NODE_ENV=production drizzle-kit migrate",
+    "db:migrate:production:docker": "docker compose --env-file .env.production -f compose.production.yaml exec app npm run db:migrate",
+    "db:migrate:development:docker": "docker compose --env-file .env.development -f compose.development.yaml exec app npm run db:migrate",
     "source-code:generate": "node scripts/generate-project-source.mjs"
   },
   "lint-staged": {

@@ -80,7 +80,7 @@ SELECT
   "notification_types"."id",
   "channels"."id",
   "seed"."region",
-  "seed"."decision",
+  "seed"."decision"::"global_policy_decision",
   "seed"."reason"
 FROM (
   VALUES
@@ -105,9 +105,9 @@ JOIN "channels"
 ON CONFLICT (
   "notification_type_id",
   "channel_id",
-  "region",
-  "decision",
-  "reason"
+  "region"
 )
 DO UPDATE SET
+  "decision" = EXCLUDED."decision",
+  "reason" = EXCLUDED."reason",
   "updated_at" = now();

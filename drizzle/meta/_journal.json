@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1781824121769,
-      "tag": "0000_adorable_invaders",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1781824258707,
-      "tag": "0001_seed-readonly-data",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1781860424323,
-      "tag": "0002_align-contracts",
+      "when": 1781862340600,
+      "tag": "0000_familiar_next_avengers",
       "breakpoints": true
     }
   ]

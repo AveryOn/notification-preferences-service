@@ -1,9 +1,77 @@
 {
-  "id": "e46aa07f-894f-45cd-91d1-897b07366fdc",
+  "id": "5b42c0e9-00ec-400b-af65-6f345c03e1a2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.channels": {
+      "name": "channels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "channels_code_unique": {
+          "name": "channels_code_unique",
+          "nullsNotDistinct": false,
+          "columns": ["code"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "channels_code_format_check": {
+          "name": "channels_code_format_check",
+          "value": "\"channels\".\"code\" ~ '^[a-z0-9]+(?:_[a-z0-9]+)*$'"
+        },
+        "channels_name_not_blank_check": {
+          "name": "channels_name_not_blank_check",
+          "value": "char_length(btrim(\"channels\".\"name\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.default_preferences": {
       "name": "default_preferences",
       "schema": "",
@@ -81,227 +149,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.notification_types": {
-      "name": "notification_types",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "code": {
-          "name": "code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "is_transactional": {
-          "name": "is_transactional",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "notification_types_code_unique": {
-          "name": "notification_types_code_unique",
-          "nullsNotDistinct": false,
-          "columns": ["code"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user_preferences": {
-      "name": "user_preferences",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "notification_type_id": {
-          "name": "notification_type_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "channel": {
-          "name": "channel",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "up_user_type_channel_unique": {
-          "name": "up_user_type_channel_unique",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "notification_type_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "channel",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "user_preferences_notification_type_id_notification_types_id_fk": {
-          "name": "user_preferences_notification_type_id_notification_types_id_fk",
-          "tableFrom": "user_preferences",
-          "tableTo": "notification_types",
-          "columnsFrom": ["notification_type_id"],
-          "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "cascade"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.channels": {
-      "name": "channels",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "code": {
-          "name": "code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "channels_code_unique": {
-          "name": "channels_code_unique",
-          "nullsNotDistinct": false,
-          "columns": ["code"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.global_policies": {
       "name": "global_policies",
       "schema": "",
@@ -327,19 +174,20 @@
         },
         "region": {
           "name": "region",
-          "type": "text",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
         "decision": {
           "name": "decision",
-          "type": "text",
+          "type": "global_policy_decision",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
         "reason": {
           "name": "reason",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
         },
@@ -381,20 +229,23 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "global_policies_rule_unique": {
-          "name": "global_policies_rule_unique",
+        "global_policies_scope_unique": {
+          "name": "global_policies_scope_unique",
           "nullsNotDistinct": true,
-          "columns": [
-            "notification_type_id",
-            "channel_id",
-            "region",
-            "decision",
-            "reason"
-          ]
+          "columns": ["notification_type_id", "channel_id", "region"]
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "global_policies_region_not_blank_check": {
+          "name": "global_policies_region_not_blank_check",
+          "value": "\"global_policies\".\"region\" IS NULL OR char_length(btrim(\"global_policies\".\"region\")) > 0"
+        },
+        "global_policies_reason_not_blank_check": {
+          "name": "global_policies_reason_not_blank_check",
+          "value": "char_length(btrim(\"global_policies\".\"reason\")) > 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.idempotency_records": {
@@ -416,25 +267,26 @@
         },
         "operation": {
           "name": "operation",
-          "type": "text",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
         },
         "idempotency_key": {
           "name": "idempotency_key",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
         },
         "request_hash": {
           "name": "request_hash",
-          "type": "text",
+          "type": "varchar(64)",
           "primaryKey": false,
           "notNull": true
         },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "idempotency_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'processing'"
@@ -502,6 +354,81 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.notification_types": {
+      "name": "notification_types",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_transactional": {
+          "name": "is_transactional",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "notification_types_code_unique": {
+          "name": "notification_types_code_unique",
+          "nullsNotDistinct": false,
+          "columns": ["code"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "notification_types_code_format_check": {
+          "name": "notification_types_code_format_check",
+          "value": "\"notification_types\".\"code\" ~ '^[a-z0-9]+(?:_[a-z0-9]+)*$'"
+        },
+        "notification_types_name_not_blank_check": {
+          "name": "notification_types_name_not_blank_check",
+          "value": "char_length(btrim(\"notification_types\".\"name\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.quiet_hours": {
       "name": "quiet_hours",
       "schema": "",
@@ -521,19 +448,19 @@
         },
         "start_time": {
           "name": "start_time",
-          "type": "time",
+          "type": "time(0)",
           "primaryKey": false,
           "notNull": true
         },
         "end_time": {
           "name": "end_time",
-          "type": "time",
+          "type": "time(0)",
           "primaryKey": false,
           "notNull": true
         },
         "timezone": {
           "name": "timezone",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
         },
@@ -573,11 +500,132 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
+      "checkConstraints": {
+        "quiet_hours_timezone_not_blank_check": {
+          "name": "quiet_hours_timezone_not_blank_check",
+          "value": "char_length(btrim(\"quiet_hours\".\"timezone\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.user_preferences": {
+      "name": "user_preferences",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notification_type_id": {
+          "name": "notification_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "up_user_type_channel_unique": {
+          "name": "up_user_type_channel_unique",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "notification_type_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "channel_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "user_preferences_notification_type_id_notification_types_id_fk": {
+          "name": "user_preferences_notification_type_id_notification_types_id_fk",
+          "tableFrom": "user_preferences",
+          "tableTo": "notification_types",
+          "columnsFrom": ["notification_type_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "user_preferences_channel_id_channels_id_fk": {
+          "name": "user_preferences_channel_id_channels_id_fk",
+          "tableFrom": "user_preferences",
+          "tableTo": "channels",
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.global_policy_decision": {
+      "name": "global_policy_decision",
+      "schema": "public",
+      "values": ["allow", "deny"]
+    },
+    "public.idempotency_status": {
+      "name": "idempotency_status",
+      "schema": "public",
+      "values": ["processing", "completed"]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},
