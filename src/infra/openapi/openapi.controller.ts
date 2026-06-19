@@ -27,7 +27,7 @@ export class OpenApiController {
   }
 
   register(app: Express): void {
-    app.get('/openapi.json', this.getDocument)
+    app.get('/json', this.getDocument)
     app.use(
       '/docs',
       this.setSwaggerContentSecurityPolicy,
