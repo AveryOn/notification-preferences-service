@@ -41,11 +41,14 @@ function idempotentJsonResponse(
 export const openApiPaths: OpenApiPathsObject = {
   '/health': pathItem({
     get: {
-      tags: ['System'],
-      summary: 'Check service health',
+      tags: ['Система'],
+      summary: 'Проверить состояние сервиса',
       operationId: 'getHealth',
       responses: {
-        '200': jsonResponse('The service is healthy.', 'HealthResponse'),
+        '200': jsonResponse(
+          'Сервис работает корректно.',
+          'HealthResponse'
+        ),
         '500': responseRef('InternalServerError')
       }
     }
@@ -53,24 +56,27 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/channels': pathItem({
     get: {
-      tags: ['Channels'],
-      summary: 'List notification channels',
+      tags: ['Каналы'],
+      summary: 'Получить список каналов уведомлений',
       operationId: 'listChannels',
       responses: {
         '200': jsonResponse(
-          'Notification channels.',
+          'Список каналов уведомлений.',
           'ChannelListResponse'
         ),
         '500': responseRef('InternalServerError')
       }
     },
     post: {
-      tags: ['Channels'],
-      summary: 'Create a notification channel',
+      tags: ['Каналы'],
+      summary: 'Создать канал уведомлений',
       operationId: 'createChannel',
       requestBody: jsonRequestBody('CreateChannelRequest'),
       responses: {
-        '201': jsonResponse('Channel created.', 'ChannelResponse'),
+        '201': jsonResponse(
+          'Канал уведомлений создан.',
+          'ChannelResponse'
+        ),
         ...commonErrors,
         '409': responseRef('Conflict')
       }
@@ -79,13 +85,16 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/channels/{channelId}': pathItem({
     patch: {
-      tags: ['Channels'],
-      summary: 'Update a notification channel',
+      tags: ['Каналы'],
+      summary: 'Обновить канал уведомлений',
       operationId: 'updateChannel',
       parameters: [parameterRef('ChannelId')],
       requestBody: jsonRequestBody('UpdateChannelRequest'),
       responses: {
-        '200': jsonResponse('Channel updated.', 'ChannelResponse'),
+        '200': jsonResponse(
+          'Канал уведомлений обновлён.',
+          'ChannelResponse'
+        ),
         ...commonErrors,
         '404': responseRef('NotFound'),
         '409': responseRef('Conflict')
@@ -95,25 +104,25 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/notification-types': pathItem({
     get: {
-      tags: ['Notification Types'],
-      summary: 'List notification types',
+      tags: ['Типы уведомлений'],
+      summary: 'Получить список типов уведомлений',
       operationId: 'listNotificationTypes',
       responses: {
         '200': jsonResponse(
-          'Notification types.',
+          'Список типов уведомлений.',
           'NotificationTypeListResponse'
         ),
         '500': responseRef('InternalServerError')
       }
     },
     post: {
-      tags: ['Notification Types'],
-      summary: 'Create a notification type',
+      tags: ['Типы уведомлений'],
+      summary: 'Создать тип уведомления',
       operationId: 'createNotificationType',
       requestBody: jsonRequestBody('CreateNotificationTypeRequest'),
       responses: {
         '201': jsonResponse(
-          'Notification type created.',
+          'Тип уведомления создан.',
           'NotificationTypeResponse'
         ),
         ...commonErrors,
@@ -124,14 +133,14 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/notification-types/{notificationTypeId}': pathItem({
     patch: {
-      tags: ['Notification Types'],
-      summary: 'Update a notification type',
+      tags: ['Типы уведомлений'],
+      summary: 'Обновить тип уведомления',
       operationId: 'updateNotificationType',
       parameters: [parameterRef('NotificationTypeId')],
       requestBody: jsonRequestBody('UpdateNotificationTypeRequest'),
       responses: {
         '200': jsonResponse(
-          'Notification type updated.',
+          'Тип уведомления обновлён.',
           'NotificationTypeResponse'
         ),
         ...commonErrors,
@@ -143,25 +152,25 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/global-policies': pathItem({
     get: {
-      tags: ['Global Policies'],
-      summary: 'List global notification policies',
+      tags: ['Глобальные политики'],
+      summary: 'Получить список глобальных политик',
       operationId: 'listGlobalPolicies',
       responses: {
         '200': jsonResponse(
-          'Global policies.',
+          'Список глобальных политик уведомлений.',
           'GlobalPolicyListResponse'
         ),
         '500': responseRef('InternalServerError')
       }
     },
     post: {
-      tags: ['Global Policies'],
-      summary: 'Create a global notification policy',
+      tags: ['Глобальные политики'],
+      summary: 'Создать глобальную политику',
       operationId: 'createGlobalPolicy',
       requestBody: jsonRequestBody('CreateGlobalPolicyRequest'),
       responses: {
         '201': jsonResponse(
-          'Global policy created.',
+          'Глобальная политика создана.',
           'GlobalPolicyResponse'
         ),
         ...commonErrors,
@@ -172,12 +181,12 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/global-policies/{policyId}': pathItem({
     delete: {
-      tags: ['Global Policies'],
-      summary: 'Delete a global notification policy',
+      tags: ['Глобальные политики'],
+      summary: 'Удалить глобальную политику',
       operationId: 'deleteGlobalPolicy',
       parameters: [parameterRef('PolicyId')],
       responses: {
-        '204': emptyResponse('Global policy deleted.'),
+        '204': emptyResponse('Глобальная политика удалена.'),
         ...commonErrors,
         '404': responseRef('NotFound')
       }
@@ -186,13 +195,14 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/users/{userId}/preferences/initialize': pathItem({
     post: {
-      tags: ['User Preferences'],
-      summary: 'Initialize user preferences from defaults',
+      tags: ['Пользовательские настройки'],
+      summary:
+        'Инициализировать настройки пользователя значениями по умолчанию',
       operationId: 'initializeUserPreferences',
       parameters: [parameterRef('UserId'), parameterRef('IdempotencyKey')],
       responses: {
         '200': idempotentJsonResponse(
-          'User preferences initialized.',
+          'Настройки пользователя инициализированы.',
           'UserPreferenceListResponse'
         ),
         ...idempotentErrors
@@ -202,13 +212,13 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/users/{userId}/preferences': pathItem({
     get: {
-      tags: ['User Preferences'],
-      summary: 'Get user preferences',
+      tags: ['Пользовательские настройки'],
+      summary: 'Получить настройки пользователя',
       operationId: 'getUserPreferences',
       parameters: [parameterRef('UserId')],
       responses: {
         '200': jsonResponse(
-          'Effective user preferences.',
+          'Эффективные настройки пользователя.',
           'UserPreferenceListResponse'
         ),
         ...commonErrors,
@@ -216,14 +226,14 @@ export const openApiPaths: OpenApiPathsObject = {
       }
     },
     patch: {
-      tags: ['User Preferences'],
-      summary: 'Update one user preference',
+      tags: ['Пользовательские настройки'],
+      summary: 'Обновить настройку пользователя',
       operationId: 'updateUserPreference',
       parameters: [parameterRef('UserId'), parameterRef('IdempotencyKey')],
       requestBody: jsonRequestBody('UpdatePreferenceRequest'),
       responses: {
         '200': idempotentJsonResponse(
-          'User preference updated.',
+          'Настройка пользователя обновлена.',
           'UserPreferenceResponse'
         ),
         ...idempotentErrors,
@@ -234,14 +244,14 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/users/{userId}/preferences/reset': pathItem({
     post: {
-      tags: ['User Preferences'],
-      summary: 'Reset one user preference to its default',
+      tags: ['Пользовательские настройки'],
+      summary: 'Сбросить настройку пользователя до значения по умолчанию',
       operationId: 'resetUserPreference',
       parameters: [parameterRef('UserId'), parameterRef('IdempotencyKey')],
       requestBody: jsonRequestBody('ResetPreferenceRequest'),
       responses: {
         '200': idempotentJsonResponse(
-          'User preference reset.',
+          'Настройка пользователя сброшена до значения по умолчанию.',
           'UserPreferenceResponse'
         ),
         ...idempotentErrors,
@@ -252,38 +262,41 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/users/{userId}/quiet-hours': pathItem({
     get: {
-      tags: ['Quiet Hours'],
-      summary: 'Get user quiet hours',
+      tags: ['Часы тишины'],
+      summary: 'Получить часы тишины пользователя',
       operationId: 'getUserQuietHours',
       parameters: [parameterRef('UserId')],
       responses: {
-        '200': jsonResponse('User quiet hours.', 'QuietHoursResponse'),
+        '200': jsonResponse(
+          'Настройки часов тишины пользователя.',
+          'QuietHoursResponse'
+        ),
         ...commonErrors,
         '404': responseRef('NotFound')
       }
     },
     patch: {
-      tags: ['Quiet Hours'],
-      summary: 'Create or update user quiet hours',
+      tags: ['Часы тишины'],
+      summary: 'Создать или обновить часы тишины пользователя',
       operationId: 'upsertUserQuietHours',
       parameters: [parameterRef('UserId'), parameterRef('IdempotencyKey')],
       requestBody: jsonRequestBody('UpdateQuietHoursRequest'),
       responses: {
         '200': idempotentJsonResponse(
-          'User quiet hours saved.',
+          'Часы тишины пользователя сохранены.',
           'QuietHoursResponse'
         ),
         ...idempotentErrors
       }
     },
     delete: {
-      tags: ['Quiet Hours'],
-      summary: 'Delete user quiet hours',
+      tags: ['Часы тишины'],
+      summary: 'Удалить часы тишины пользователя',
       operationId: 'deleteUserQuietHours',
       parameters: [parameterRef('UserId'), parameterRef('IdempotencyKey')],
       responses: {
         '204': emptyResponse(
-          'User quiet hours deleted.',
+          'Часы тишины пользователя удалены.',
           idempotencyResponseHeaders
         ),
         ...idempotentErrors,
@@ -294,13 +307,13 @@ export const openApiPaths: OpenApiPathsObject = {
 
   '/v1/evaluate': pathItem({
     post: {
-      tags: ['Evaluation'],
-      summary: 'Evaluate whether a notification may be sent',
+      tags: ['Проверка отправки'],
+      summary: 'Проверить возможность отправки уведомления',
       operationId: 'evaluateNotification',
       requestBody: jsonRequestBody('EvaluateNotificationRequest'),
       responses: {
         '200': jsonResponse(
-          'Notification delivery decision.',
+          'Результат проверки возможности отправки уведомления.',
           'EvaluationResult'
         ),
         ...commonErrors,

@@ -16,6 +16,7 @@ import { idempotencyProviders } from '~/modules/v1/idempotency/idempotency.modul
 import { notificationTypesProviders } from '~/modules/v1/notification-types/notification-types.module'
 import { channelsProviders } from '~/modules/v1/channels/channels.module'
 import { evaluationProviders } from '~/modules/v1/evaluation/evaluation.module'
+import { openApiProviders } from '~/infra/openapi'
 
 export const appProviders: DiProvider[] = [
   { token: ENV_TOKEN, useValue: env },
@@ -28,5 +29,7 @@ export const appProviders: DiProvider[] = [
   ...globalPoliciesProviders,
   ...idempotencyProviders,
   ...evaluationProviders,
+
+  ...openApiProviders,
   { token: HTTP_SERVER_TOKEN, useClass: HttpServer }
 ]

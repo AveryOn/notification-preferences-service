@@ -10,7 +10,7 @@ export const openApiParameters: Record<string, OpenApiParameterObject> = {
   UserId: {
     name: 'userId',
     in: 'path',
-    description: 'Application-level user identifier.',
+    description: 'Идентификатор пользователя на уровне приложения.',
     required: true,
     schema: {
       type: 'string',
@@ -20,7 +20,7 @@ export const openApiParameters: Record<string, OpenApiParameterObject> = {
   ChannelId: {
     name: 'channelId',
     in: 'path',
-    description: 'Channel identifier.',
+    description: 'Идентификатор канала.',
     required: true,
     schema: {
       type: 'string',
@@ -30,7 +30,7 @@ export const openApiParameters: Record<string, OpenApiParameterObject> = {
   NotificationTypeId: {
     name: 'notificationTypeId',
     in: 'path',
-    description: 'Notification type identifier.',
+    description: 'Идентификатор типа уведомления.',
     required: true,
     schema: {
       type: 'string',
@@ -40,7 +40,7 @@ export const openApiParameters: Record<string, OpenApiParameterObject> = {
   PolicyId: {
     name: 'policyId',
     in: 'path',
-    description: 'Global policy identifier.',
+    description: 'Идентификатор глобальной политики.',
     required: true,
     schema: {
       type: 'string',
@@ -51,7 +51,7 @@ export const openApiParameters: Record<string, OpenApiParameterObject> = {
     name: 'Idempotency-Key',
     in: 'header',
     description:
-      'Unique key identifying a mutation. Reusing the key with a different payload returns 409.',
+      'Уникальный ключ, идентифицирующий мутацию. Повторное использование ключа с другим payload вернёт 409.',
     required: true,
     schema: {
       type: 'string',

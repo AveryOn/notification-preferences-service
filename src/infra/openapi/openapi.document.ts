@@ -16,7 +16,7 @@ export function createOpenApiDocument(): OpenApiDocument {
       title: 'Notification Preferences Service API',
       version: '1.0.0',
       description:
-        'API for managing notification channels, notification types, global policies, user preferences, quiet hours, and notification delivery decisions.'
+        'API для управления каналами уведомлений, типами уведомлений, глобальными политиками, пользовательскими настройками, временем тишины и решениями о доставке уведомлений.'
     },
     servers: [
       {

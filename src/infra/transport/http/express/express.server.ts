@@ -20,6 +20,7 @@ import { GlobalPoliciesController } from '~/modules/v1/global-policies/infra/htt
 import { NotificationTypesController } from '~/modules/v1/notification-types/infra/http/notification-types.controller'
 import { PreferencesController } from '~/modules/v1/preferences/infra/http/preferences.controller'
 import { QuietHoursController } from '~/modules/v1/quiet-hours/infra/http/quiet-hours.controller'
+import { OpenApiController } from '~/infra/openapi'
 
 type Environment = typeof env
 
@@ -50,7 +51,10 @@ export class HttpServer {
     private readonly channelsController: ChannelsController,
 
     @Inject(EvaluationController)
-    private readonly evaluationController: EvaluationController
+    private readonly evaluationController: EvaluationController,
+
+    @Inject(OpenApiController)
+    private readonly openApiController: OpenApiController
   ) {
     this.app = express()
     this.configure()
@@ -98,6 +102,8 @@ export class HttpServer {
         limit: '1mb'
       })
     )
+    // регистрация сваггера
+    this.openApiController.register(this.app)
 
     this.quietHoursController.register(this.app)
     this.channelsController.register(this.app)
