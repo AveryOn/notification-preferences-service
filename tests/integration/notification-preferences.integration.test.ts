@@ -97,7 +97,7 @@ describe('Notification Preferences Service integration scenarios', () => {
     await application.quietHoursService.update(userId, {
       startTime: '22:00:00',
       endTime: '08:00:00',
-      timezone: 'Europe/Tbilisi'
+      timezone: 'Asia/Tbilisi'
     })
 
     const datetime = new Date('2026-05-21T19:30:00.000Z')
