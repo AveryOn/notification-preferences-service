@@ -17,6 +17,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "docker-reset": "./scripts/docker-full-reset.sh",
     "dev:docker:up": "docker compose --env-file .env.development -f compose.development.yaml up --build",
     "dev:docker:down": "docker compose --env-file .env.development -f compose.development.yaml down",
     "dev:docker:renew": "docker compose --env-file .env.development -f compose.development.yaml up --build --renew-anon-volumes",
