@@ -1,5 +1,6 @@
-import type { LogContext } from '../../src/infra/logger'
-import { LoggerPort } from '../../src/infra/logger'
+import type { LogContext } from '~/infra/logger'
+
+import { LoggerPort } from '~/infra/logger'
 
 export class TestLogger extends LoggerPort {
   trace(_context: LogContext, _message: string): void {}
