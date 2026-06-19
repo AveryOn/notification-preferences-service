@@ -7,12 +7,13 @@ import express, { type Express } from 'express'
 import helmet from 'helmet'
 
 import { ENV_TOKEN, LOGGER_TOKEN } from '~/app/app.tokens'
-import { Inject, Injectable } from '~/core/di/di.container'
+import { Inject, Injectable } from '~/core/di'
 import {
   createHttpErrorHandler,
   notFoundHandler
 } from '~/infra/transport/http/middlewares/http-error.middleware'
-import { httpLoggerMiddleware } from '~/infra/transport/http/http-logger.middleware'
+
+import { httpLoggerMiddleware } from '~/infra/transport/http/middlewares/http-logger.middleware'
 import { ChannelsController } from '~/modules/v1/channels/infra/http/channels.controller'
 import { EvaluationController } from '~/modules/v1/evaluation/infra/http/evaluation.controller'
 import { GlobalPoliciesController } from '~/modules/v1/global-policies/infra/http/global-policies.controller'
