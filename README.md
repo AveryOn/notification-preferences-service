@@ -1,34 +1,117 @@
 # Notification Preferences Service
 
-## Getting Started
+Notification Preferences Service — backend-сервис для хранения настроек
+уведомлений и принятия решения о допустимости отправки уведомления конкретному
+пользователю.
 
-### Требования
+Сервис не отправляет уведомления. Он управляет каналами, типами уведомлений,
+пользовательскими предпочтениями, quiet hours и глобальными политиками, а затем
+возвращает решение `allow` или `deny` с причинами.
 
-Для локального запуска необходимы:
+## Содержание
 
-- Node.js `>= 24`;
-- npm;
-- Docker с доступным Docker daemon;
-- PostgreSQL 17 — локально либо через Docker Compose.
+- [Возможности](#возможности)
+- [Технологический стек](#технологический-стек)
+- [Быстрый старт](#быстрый-старт)
+- [Запуск полностью в Docker](#запуск-полностью-в-docker)
+- [Production-запуск](#production-запуск)
+- [Конфигурация окружения](#конфигурация-окружения)
+- [HTTP API](#http-api)
+- [Бизнес-правила](#бизнес-правила)
+- [Архитектура](#архитектура)
+- [База данных](#база-данных)
+- [Миграции](#миграции)
+- [Тестовые данные](#тестовые-данные)
+- [Тестирование](#тестирование)
+- [Команды проекта](#команды-проекта)
+- [Git hooks](#git-hooks)
+- [Полный сброс Docker](#полный-сброс-docker)
+- [Диагностика](#диагностика)
+- [Текущие ограничения](#текущие-ограничения)
 
-Версия Node.js зафиксирована в `.nvmrc`.
+## Возможности
+
+Сервис реализует:
+
+- справочник каналов доставки;
+- справочник типов уведомлений;
+- дефолтную матрицу предпочтений;
+- инициализацию предпочтений пользователя;
+- изменение и сброс отдельных предпочтений;
+- quiet hours с поддержкой IANA timezone;
+- глобальные политики по типу уведомления, каналу и региону;
+- вычисление итогового решения `allow` / `deny`;
+- идемпотентность команд изменения пользовательского состояния;
+- OpenAPI 3.1 и Swagger UI;
+- структурированное HTTP-логирование с `x-request-id`;
+- PostgreSQL-миграции через Drizzle;
+- интеграционные тесты через Vitest и Testcontainers.
+
+`userId` является внешним идентификатором. Сервис не содержит собственной
+таблицы пользователей и не проверяет существование пользователя во внешней
+системе.
+
+## Технологический стек
+
+- Node.js 24;
+- TypeScript 6;
+- Express 5;
+- PostgreSQL 17;
+- Drizzle ORM и Drizzle Kit;
+- Zod;
+- Pino и `pino-http`;
+- OpenAPI 3.1 и Swagger UI;
+- Vitest;
+- Testcontainers;
+- Docker и Docker Compose;
+- tsup;
+- ESLint и Prettier;
+- Husky и lint-staged.
+
+## Быстрый старт
+
+Рекомендуемый режим разработки:
+
+- приложение запускается локально через Node.js;
+- PostgreSQL запускается через Docker Compose;
+- миграции и seed выполняются с хоста.
+
+Этот режим соответствует текущей реализации `scripts/run-seed.ts`, которая
+подключается к PostgreSQL через `127.0.0.1:${POSTGRES_PORT}`.
+
+### 1. Клонировать репозиторий
 
 ```bash
+git clone https://github.com/AveryOn/notification-preferences-service.git
+cd notification-preferences-service
+```
+
+### 2. Подготовить Node.js
+
+Требуется Node.js `>= 24`. Версия проекта зафиксирована в `.nvmrc`.
+
+```bash
+nvm install
 nvm use
+node --version
+```
+
+Ожидается версия `v24.x.x` или новее.
+
+### 3. Установить зависимости
+
+```bash
 npm ci
 ```
 
-### Быстрый локальный запуск
-
-Наиболее простой вариант разработки: приложение запускается локально через Node.js, PostgreSQL — через Docker Compose.
-
-1. Создать файл окружения:
+### 4. Создать development-конфигурацию
 
 ```bash
 cp .env.example .env.development
 ```
 
-2. Указать в `.env.development` параметры локального подключения:
+Для рекомендованного режима установите согласованные значения порта
+PostgreSQL:
 
 ```dotenv
 NODE_ENV=development
@@ -38,17 +121,20 @@ LOG_PRETTY=true
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 TRUST_PROXY=false
 
-SWAGGER_URL="/docs"
-SWAGGER_JSON_URL="/docs/json"
+SWAGGER_URL=/docs
+SWAGGER_JSON_URL=/docs/json
 
 POSTGRES_USER=notification_service
 POSTGRES_PASSWORD=notification_service
 POSTGRES_DB=notification_preferences
 POSTGRES_PORT=5433
-DATABASE_URL=postgres://notification_service:notification_service@localhost:5433/notification_preferences
+DATABASE_URL=postgres://notification_service:notification_service@127.0.0.1:5433/notification_preferences
 ```
 
-3. Запустить только PostgreSQL:
+> В текущем `.env.example` значения `POSTGRES_PORT` и порта в `DATABASE_URL`
+> различаются. Перед запуском они должны быть приведены к одному значению.
+
+### 5. Запустить PostgreSQL
 
 ```bash
 docker compose \
@@ -57,19 +143,33 @@ docker compose \
   up -d postgres
 ```
 
-4. Применить миграции:
+Проверить состояние контейнера:
+
+```bash
+docker compose \
+  --env-file .env.development \
+  -f compose.development.yaml \
+  ps
+```
+
+PostgreSQL должен перейти в состояние `healthy`.
+
+### 6. Применить миграции
 
 ```bash
 npm run db:migrate
 ```
 
-5. Загрузить тестовые справочники, дефолты и глобальную политику:
+### 7. Загрузить тестовые справочники
 
 ```bash
 npm run db:seed:test
 ```
 
-6. Запустить приложение:
+Seed нужен для готового набора каналов, типов уведомлений, дефолтных
+предпочтений и тестовой глобальной политики.
+
+### 8. Запустить приложение
 
 ```bash
 npm run dev
@@ -77,10 +177,12 @@ npm run dev
 
 После запуска доступны:
 
-- API: `http://localhost:3000`;
-- Swagger UI: `http://localhost:3000/docs`;
-- OpenAPI JSON: `http://localhost:3000/openapi.json`;
-- Health check: `http://localhost:3000/health`.
+| Ресурс       | URL                               |
+| ------------ | --------------------------------- |
+| API          | `http://localhost:3000`           |
+| Health check | `http://localhost:3000/health`    |
+| Swagger UI   | `http://localhost:3000/docs`      |
+| OpenAPI JSON | `http://localhost:3000/docs/json` |
 
 Проверка:
 
@@ -96,9 +198,28 @@ curl http://localhost:3000/health
 }
 ```
 
-### Полный запуск через Docker Compose
+### 9. Остановить PostgreSQL
 
-Для запуска приложения и PostgreSQL внутри Docker в `.env.development` необходимо использовать имя Compose-сервиса `postgres` в `DATABASE_URL`:
+```bash
+docker compose \
+  --env-file .env.development \
+  -f compose.development.yaml \
+  down
+```
+
+Обычный `down` не удаляет данные PostgreSQL из named volume.
+
+## Запуск полностью в Docker
+
+В этом режиме приложение и PostgreSQL работают внутри Docker Compose.
+
+### 1. Подготовить окружение
+
+```bash
+cp .env.example .env.development
+```
+
+Используйте следующую конфигурацию:
 
 ```dotenv
 NODE_ENV=development
@@ -109,11 +230,8 @@ LOG_PRETTY=true
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 TRUST_PROXY=false
 
-SWAGGER_URL="/docs"
-SWAGGER_JSON_URL="/docs/json"
-
-SWAGGER_URL="/docs"
-SWAGGER_JSON_URL="/docs/json"
+SWAGGER_URL=/docs
+SWAGGER_JSON_URL=/docs/json
 
 POSTGRES_USER=notification_service
 POSTGRES_PASSWORD=notification_service
@@ -122,73 +240,446 @@ POSTGRES_PORT=5433
 DATABASE_URL=postgres://notification_service:notification_service@postgres:5432/notification_preferences
 ```
 
-Запуск:
+Правила для Compose-конфигурации:
+
+- `DATABASE_URL` должен использовать hostname `postgres`;
+- внутренний порт PostgreSQL всегда равен `5432`;
+- `POSTGRES_PORT` определяет опубликованный порт PostgreSQL на хосте;
+- `PORT` должен оставаться равным `3000`, потому что Compose публикует порт
+  контейнера `3000`;
+- `APP_PORT` определяет внешний порт приложения на хосте.
+
+### 2. Собрать и запустить сервисы
 
 ```bash
 npm run dev:docker:up
 ```
 
-В отдельном терминале применить миграции:
+Команда работает в foreground и выводит логи обоих контейнеров. Для следующих
+шагов откройте второй терминал.
+
+### 3. Применить миграции внутри app-контейнера
 
 ```bash
 npm run db:migrate:development:docker
 ```
 
-Сид выполняется с хоста и подключается к `127.0.0.1:${POSTGRES_PORT}`:
+Development-контейнер не применяет миграции автоматически.
+
+### 4. Загрузить тестовые данные
 
 ```bash
 npm run db:seed:test
 ```
 
-Остановка:
+Seed запускается на хосте и подключается к
+`127.0.0.1:${POSTGRES_PORT}`. Поэтому для этой команды должны быть установлены
+локальные npm-зависимости:
+
+```bash
+npm ci
+```
+
+### 5. Остановить development-сервисы
 
 ```bash
 npm run dev:docker:down
 ```
 
----
+## Production-запуск
 
-## Назначение сервиса
+Production Compose собирает multi-stage Docker image, устанавливает только
+production dependencies и запускает приложение из `dist/`.
 
-Notification Preferences Service является единым источником правды для определения допустимости отправки уведомлений пользователю.
+### 1. Создать production-конфигурацию
 
-Сервис хранит и применяет:
+```bash
+cp .env.example .env.production
+```
 
-- каналы доставки уведомлений;
-- типы уведомлений;
-- дефолтные предпочтения;
-- индивидуальные предпочтения пользователей;
-- пользовательские quiet hours;
-- глобальные политики по типу уведомления, каналу и региону;
-- записи идемпотентности для команд изменения состояния.
+Пример:
 
-Сервис не отправляет уведомления самостоятельно. Его ответственность — вернуть решение `allow` или `deny` и причины принятого решения.
+```dotenv
+NODE_ENV=production
+PORT=3000
+APP_PORT=3000
+LOG_LEVEL=info
+LOG_PRETTY=false
+CORS_ORIGINS=https://app.example.com
+TRUST_PROXY=true
 
-`userId` является внешним идентификатором пользователя. Внутренняя таблица пользователей в сервисе отсутствует.
+SWAGGER_URL=/docs
+SWAGGER_JSON_URL=/docs/json
 
----
+POSTGRES_USER=notification_service
+POSTGRES_PASSWORD=replace_with_strong_password
+POSTGRES_DB=notification_preferences
+POSTGRES_PORT=5433
+DATABASE_URL=postgres://notification_service:replace_with_strong_password@postgres:5432/notification_preferences
+```
 
-## Технологический стек
+Не храните `.env.production` в Git.
 
-- TypeScript;
-- Node.js 24;
-- Express 5;
-- PostgreSQL 17;
-- Drizzle ORM и Drizzle Kit;
-- Zod;
-- Pino и `pino-http`;
-- OpenAPI 3.1 и Swagger UI;
-- Vitest;
-- Testcontainers;
-- Docker и Docker Compose;
-- tsup;
-- ESLint и Prettier.
+### 2. Запустить production Compose
 
----
+```bash
+npm run prod:docker:up
+```
+
+Production entrypoint выполняет миграции автоматически:
+
+```text
+node dist/migrate.js
+node dist/main.js
+```
+
+HTTP-сервер запускается только после успешного завершения миграций.
+
+### 3. Проверить состояние
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f compose.production.yaml \
+  ps
+
+curl http://localhost:3000/health
+```
+
+### 4. Просмотреть логи
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f compose.production.yaml \
+  logs -f app
+```
+
+### 5. Остановить production-сервисы
+
+```bash
+npm run prod:docker:down
+```
+
+Тестовый seed в production не запускается.
+
+## Конфигурация окружения
+
+Приложение загружает файл, соответствующий `NODE_ENV`:
+
+```text
+.env.development
+.env.test
+.env.production
+```
+
+Если `NODE_ENV` не задан, используется `development`.
+
+| Переменная          | Обязательна | Допустимые значения                                          | Назначение                                 |
+| ------------------- | ----------: | ------------------------------------------------------------ | ------------------------------------------ |
+| `NODE_ENV`          |          да | `development`, `test`, `production`                          | Режим приложения                           |
+| `PORT`              |          да | `1..65535`                                                   | Порт HTTP-сервера внутри процесса          |
+| `APP_PORT`          |         нет | TCP-порт                                                     | Внешний порт приложения в Docker Compose   |
+| `LOG_LEVEL`         |         нет | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent` | Уровень Pino, по умолчанию `info`          |
+| `LOG_PRETTY`        |         нет | `true`, `false`                                              | Pretty-логи только в development           |
+| `CORS_ORIGINS`      |          да | URL через запятую или `*`                                    | Разрешённые origins в production           |
+| `TRUST_PROXY`       |          да | `true`, `false`                                              | Значение Express `trust proxy`             |
+| `SWAGGER_URL`       |         нет | путь, начинающийся с `/`                                     | Swagger UI, по умолчанию `/docs`           |
+| `SWAGGER_JSON_URL`  |         нет | путь, начинающийся с `/`                                     | OpenAPI JSON, по умолчанию `/docs/json`    |
+| `POSTGRES_USER`     |          да | непустая строка                                              | Пользователь PostgreSQL                    |
+| `POSTGRES_PASSWORD` |          да | непустая строка                                              | Пароль PostgreSQL                          |
+| `POSTGRES_DB`       |          да | непустая строка                                              | Имя базы данных                            |
+| `POSTGRES_PORT`     |          да | `1..65535`                                                   | Порт PostgreSQL на хосте и для seed runner |
+| `DATABASE_URL`      |          да | валидный URL                                                 | Подключение приложения и миграций          |
+
+### Важные особенности
+
+- В development CORS разрешает любой origin независимо от `CORS_ORIGINS`.
+- В production CORS использует список из `CORS_ORIGINS`.
+- Helmet включается только в production.
+- Размер JSON и URL-encoded body ограничен `1mb`.
+- `APP_PORT` используется Docker Compose и не валидируется приложением.
+- В Compose изменяйте внешний порт через `APP_PORT`, а не через `PORT`.
+
+## HTTP API
+
+Точные request/response schemas и интерактивные примеры находятся в Swagger UI:
+
+```text
+GET /docs
+```
+
+OpenAPI 3.1 документ:
+
+```text
+GET /docs/json
+```
+
+Пути могут быть изменены через `SWAGGER_URL` и `SWAGGER_JSON_URL`.
+
+### Системные маршруты
+
+| Метод | Путь         | Назначение                         |
+| ----- | ------------ | ---------------------------------- |
+| `GET` | `/health`    | Проверка доступности HTTP-процесса |
+| `GET` | `/docs`      | Swagger UI                         |
+| `GET` | `/docs/json` | OpenAPI JSON                       |
+
+`/health` не проверяет подключение к PostgreSQL и не является readiness probe.
+
+### Каналы
+
+| Метод   | Путь                      | Назначение              |
+| ------- | ------------------------- | ----------------------- |
+| `GET`   | `/v1/channels`            | Получить список каналов |
+| `POST`  | `/v1/channels`            | Создать канал           |
+| `PATCH` | `/v1/channels/:channelId` | Изменить канал          |
+
+Код канала должен использовать lowercase snake_case, например `email` или
+`mobile_push`.
+
+### Типы уведомлений
+
+| Метод   | Путь                                         | Назначение            |
+| ------- | -------------------------------------------- | --------------------- |
+| `GET`   | `/v1/notification-types`                     | Получить список типов |
+| `POST`  | `/v1/notification-types`                     | Создать тип           |
+| `PATCH` | `/v1/notification-types/:notificationTypeId` | Изменить тип          |
+
+Тип может быть транзакционным (`isTransactional: true`). Транзакционные
+уведомления не блокируются quiet hours, но по-прежнему учитывают глобальный
+`deny` и пользовательское предпочтение.
+
+### API глобальных политик
+
+| Метод    | Путь                            | Назначение                            |
+| -------- | ------------------------------- | ------------------------------------- |
+| `GET`    | `/v1/global-policies`           | Получить политики                     |
+| `POST`   | `/v1/global-policies`           | Создать или обновить политику области |
+| `DELETE` | `/v1/global-policies/:policyId` | Удалить политику                      |
+
+`POST /v1/global-policies` выполняет upsert по комбинации:
+
+```text
+notificationTypeId + channelId + region
+```
+
+Поля области могут быть `null`; такое значение работает как wildcard.
+
+### Предпочтения пользователя
+
+| Метод   | Путь                                       | Idempotency-Key | Назначение                                |
+| ------- | ------------------------------------------ | --------------: | ----------------------------------------- |
+| `POST`  | `/v1/users/:userId/preferences/initialize` |      обязателен | Скопировать активные дефолты пользователю |
+| `GET`   | `/v1/users/:userId/preferences`            |             нет | Получить предпочтения                     |
+| `PATCH` | `/v1/users/:userId/preferences`            |      обязателен | Изменить одну настройку                   |
+| `POST`  | `/v1/users/:userId/preferences/reset`      |      обязателен | Сбросить одну настройку к дефолту         |
+
+Пример инициализации:
+
+```bash
+curl -i -X POST \
+  http://localhost:3000/v1/users/user-1/preferences/initialize \
+  -H 'Idempotency-Key: initialize-user-1'
+```
+
+### API quiet hours
+
+| Метод    | Путь                            | Idempotency-Key | Назначение                       |
+| -------- | ------------------------------- | --------------: | -------------------------------- |
+| `GET`    | `/v1/users/:userId/quiet-hours` |             нет | Получить quiet hours             |
+| `PATCH`  | `/v1/users/:userId/quiet-hours` |      обязателен | Создать или обновить quiet hours |
+| `DELETE` | `/v1/users/:userId/quiet-hours` |      обязателен | Удалить quiet hours              |
+
+Время передаётся в формате `HH:mm:ss`, timezone — в формате IANA:
+
+```json
+{
+  "startTime": "22:00:00",
+  "endTime": "08:00:00",
+  "timezone": "Asia/Tbilisi"
+}
+```
+
+### Проверка возможности отправки
+
+| Метод  | Путь           | Назначение                                |
+| ------ | -------------- | ----------------------------------------- |
+| `POST` | `/v1/evaluate` | Вернуть итоговое решение `allow` / `deny` |
+
+Пример:
+
+```bash
+curl -X POST http://localhost:3000/v1/evaluate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "userId": "user-1",
+    "notificationTypeId": "<NOTIFICATION_TYPE_UUID>",
+    "channelId": "<CHANNEL_UUID>",
+    "region": "GE",
+    "datetime": "2026-06-19T12:00:00.000Z"
+  }'
+```
+
+Пример ответа:
+
+```json
+{
+  "decision": "deny",
+  "reasons": ["blocked_by_quiet_hours"]
+}
+```
+
+`datetime` должен быть ISO 8601 datetime с timezone offset.
+
+### Формат ошибок
+
+Ошибка валидации:
+
+```json
+{
+  "code": "invalid_request",
+  "message": "Request validation failed",
+  "issues": []
+}
+```
+
+Неизвестный маршрут:
+
+```json
+{
+  "code": "route_not_found",
+  "message": "Route was not found"
+}
+```
+
+Необработанная ошибка:
+
+```json
+{
+  "code": "internal_server_error",
+  "message": "Internal server error"
+}
+```
+
+Каждый HTTP-ответ содержит `x-request-id`. Если клиент передал строковый
+`x-request-id`, сервис сохраняет его; иначе генерируется UUID.
+
+## Бизнес-правила
+
+### Инициализация предпочтений
+
+При инициализации активные записи из `default_preferences` копируются в
+`user_preferences`.
+
+Повторная инициализация безопасна: используется `ON CONFLICT DO NOTHING`,
+поэтому существующие предпочтения не перезаписываются.
+
+### Изменение предпочтения
+
+Пользовательская настройка определяется комбинацией:
+
+```text
+userId + notificationTypeId + channelId
+```
+
+Изменение выполняется через upsert. Перед изменением сервис требует, чтобы у
+пользователя уже существовал хотя бы один активный набор предпочтений.
+
+### Сброс предпочтения
+
+Сброс восстанавливает значение из `default_preferences` для конкретной пары
+`notificationTypeId + channelId`.
+
+Если дефолт для пары отсутствует, сервис возвращает `404`.
+
+### Quiet hours
+
+- начало интервала включительно;
+- конец интервала исключительно;
+- интервалы через полночь поддерживаются;
+- `startTime === endTime` означает, что интервал не блокирует уведомления;
+- момент запроса переводится в timezone пользователя через `Intl.DateTimeFormat`;
+- quiet hours применяются только к нетранзакционным типам.
+
+### Глобальные политики
+
+Политика может быть ограничена:
+
+- типом уведомления;
+- каналом;
+- регионом.
+
+`null` означает wildcard. Совпадение региона является точным и
+регистрозависимым.
+
+Специфичность равна количеству непустых ограничений. Применяются только
+совпавшие политики максимальной специфичности. Если на одном уровне
+специфичности одновременно существуют `allow` и `deny`, приоритет имеет
+`deny`.
+
+### Порядок вычисления решения
+
+`POST /v1/evaluate` выполняет проверки в следующем порядке:
+
+1. Найти совпадающие глобальные политики.
+2. Если эффективная политика равна `deny`, немедленно вернуть `deny`.
+3. Найти пользовательское предпочтение для типа и канала.
+4. Если предпочтение выключено, вернуть `deny`.
+5. Если тип транзакционный, вернуть `allow`.
+6. Получить quiet hours пользователя.
+7. Если момент находится внутри quiet hours, вернуть `deny`.
+8. Иначе вернуть `allow`.
+
+Стандартные причины:
+
+- `allowed`;
+- `disabled_by_preference`;
+- `blocked_by_quiet_hours`;
+- `reason` применённой глобальной политики.
+
+Глобальный `allow` не обходит пользовательский `deny` и quiet hours.
+
+### Идемпотентность
+
+Идемпотентность используется для:
+
+- инициализации предпочтений;
+- изменения предпочтения;
+- сброса предпочтения;
+- создания или изменения quiet hours;
+- удаления quiet hours.
+
+Заголовок:
+
+```http
+Idempotency-Key: <unique-command-key>
+```
+
+Ключ должен содержать от 1 до 255 символов.
+
+Область уникальности:
+
+```text
+userId + operation + idempotencyKey
+```
+
+Поведение:
+
+- первый запрос выполняет операцию и сохраняет HTTP status и body;
+- повтор с тем же ключом и тем же payload возвращает сохранённый результат;
+- повтор с другим payload возвращает `409 idempotency_key_conflict`;
+- конкурентный незавершённый запрос возвращает
+  `409 idempotency_operation_in_progress`;
+- срок хранения записи — 7 дней;
+- ответ содержит `Idempotency-Replayed: true|false`.
+
+Истёкшая запись удаляется лениво при следующей операции в той же области.
 
 ## Архитектура
 
-Проект разделён на доменный, транспортный и инфраструктурный уровни.
+Проект использует модульную архитектуру с явным разделением домена, портов,
+HTTP-адаптеров и persistence-адаптеров.
 
 ```text
 src/
@@ -205,18 +696,18 @@ src/
 │   └── transport/http/
 ├── modules/v1/
 │   ├── channels/
-│   ├── notification-types/
-│   ├── preferences/
-│   ├── quiet-hours/
+│   ├── evaluation/
 │   ├── global-policies/
 │   ├── idempotency/
-│   └── evaluation/
+│   ├── notification-types/
+│   ├── preferences/
+│   └── quiet-hours/
 ├── env.ts
 ├── main.ts
 └── migrate.ts
 ```
 
-Типовая структура бизнес-модуля:
+Типовая структура модуля:
 
 ```text
 module/
@@ -237,330 +728,129 @@ module/
 
 ### Ответственность слоёв
 
-`domain` содержит бизнес-правила, доменные типы и доменные ошибки.
-
-`ports` определяет абстракции сервисов и репозиториев. Домен зависит от портов, а не от Express, PostgreSQL или Drizzle.
-
-`infra/http` содержит HTTP-контроллеры, Zod DTO, преобразование доменных сущностей в API-ответы и регистрацию маршрутов.
-
-`infra/persistence` содержит реализации репозиториев на Drizzle ORM.
-
-`infra/database` создаёт PostgreSQL pool, Drizzle client и адаптер `DatabasePort`.
-
-`infra/openapi` формирует OpenAPI-документ и публикует `/docs` и `/openapi.json`.
-
-### Связи модулей
-
-```text
-HttpServer
-├── ChannelsController
-│   └── ChannelsServicePort
-│       └── ChannelsRepoPort
-│           └── DatabasePort
-├── NotificationTypesController
-│   └── NotificationTypesServicePort
-│       └── NotificationTypesRepositoryPort
-│           └── DatabasePort
-├── PreferencesController
-│   ├── PreferencesServicePort
-│   │   ├── PreferencesRepositoryPort
-│   │   │   └── DatabasePort
-│   │   └── LoggerPort
-│   └── IdempotencyServicePort
-│       └── IdempotencyRepositoryPort
-│           └── DatabasePort
-├── QuietHoursController
-│   ├── QuietHoursServicePort
-│   │   ├── QuietHoursRepositoryPort
-│   │   │   └── DatabasePort
-│   │   └── LoggerPort
-│   └── IdempotencyServicePort
-├── GlobalPoliciesController
-│   └── GlobalPoliciesServicePort
-│       └── GlobalPoliciesRepositoryPort
-│           └── DatabasePort
-└── EvaluationController
-    └── EvaluationServicePort
-        ├── GlobalPoliciesServicePort
-        ├── PreferencesServicePort
-        ├── QuietHoursServicePort
-        └── LoggerPort
-```
+- `domain` — бизнес-правила, доменные типы и ошибки;
+- `ports` — абстракции сервисов и репозиториев;
+- `infra/http` — Express-контроллеры, Zod DTO и HTTP mapping;
+- `infra/persistence` — реализации репозиториев на Drizzle;
+- `infra/database` — PostgreSQL pool, Drizzle client и `DatabasePort`;
+- `infra/openapi` — OpenAPI document и Swagger UI;
+- `app` — composition root и регистрация зависимостей.
 
 ### Dependency Injection
 
-В проекте используется собственный DI-контейнер.
-
-Поддерживаются:
+Проект содержит собственный DI-контейнер с поддержкой:
 
 - `useValue`;
 - `useClass`;
 - `useFactory`;
-- явные токены;
+- class и symbol tokens;
 - `@Injectable()`;
-- `@Inject(token)`.
-
-Провайдеры регистрируются в `src/app/app.providers.ts`. Контейнер создаёт экземпляры лениво при первом `resolve()` и кэширует их как singleton в рамках процесса.
+- `@Inject(token)`;
+- singleton-кэширования в рамках контейнера.
 
 Точка входа:
 
 ```text
-main.ts
+src/main.ts
   -> DiModule.bootstrap(appProviders)
   -> resolve(HTTP_SERVER_TOKEN)
   -> HttpServer.start()
 ```
 
-OpenAPI подключён как инфраструктурный модуль и не создаёт зависимостей домена от Swagger или HTTP.
-
----
-
-## Бизнес-правила
-
-### Дефолтные предпочтения
-
-При инициализации пользователя активные записи из `default_preferences` копируются в `user_preferences`.
-
-Операция выполняется через `INSERT ... ON CONFLICT DO NOTHING`, поэтому повторная инициализация не создаёт дубликаты.
-
-Тестовый сид создаёт следующую матрицу:
-
-| Тип             | Канал   | Значение |
-| --------------- | ------- | -------: |
-| `transactional` | `email` |   `true` |
-| `transactional` | `sms`   |   `true` |
-| `transactional` | `push`  |   `true` |
-| `marketing`     | `email` |  `false` |
-| `marketing`     | `sms`   |  `false` |
-| `marketing`     | `push`  |  `false` |
-
-### Индивидуальные предпочтения
-
-Пользовательская настройка определяется комбинацией:
-
-```text
-userId + notificationTypeId + channelId
-```
-
-Обновление выполняется через upsert. Существующая запись изменяется, отсутствующая создаётся.
-
-Изменение одной комбинации не изменяет остальные предпочтения пользователя.
-
-### Quiet hours
-
-Quiet hours содержат:
-
-- `startTime` в формате `HH:mm:ss`;
-- `endTime` в формате `HH:mm:ss`;
-- IANA timezone, например `Asia/Tbilisi`.
-
-Границы интервала:
-
-- начало включительно;
-- окончание исключительно;
-- интервалы через полночь поддерживаются;
-- если `startTime === endTime`, quiet hours считаются неактивными.
-
-Quiet hours применяются только к нетранзакционным уведомлениям. Транзакционное уведомление, разрешённое пользовательской настройкой, не блокируется quiet hours.
-
-### Глобальные политики
-
-Глобальная политика может быть ограничена:
-
-- типом уведомления;
-- каналом;
-- регионом.
-
-Любое из этих полей может быть `null`, что означает wildcard.
-
-Специфичность политики определяется количеством непустых ограничений:
-
-```text
-notificationTypeId + channelId + region
-```
-
-При проверке используются политики с максимальной специфичностью. Если на одном уровне специфичности присутствуют `allow` и `deny`, решение `deny` имеет приоритет.
-
-Причины эффективных политик возвращаются в `reasons` без дубликатов.
-
-Разрешающая глобальная политика не обходит пользовательские предпочтения и quiet hours. Она задаёт разрешение только на уровне глобальной политики.
-
-### Порядок проверки возможности отправки
-
-`POST /v1/evaluate` применяет правила в следующем порядке:
-
-1. Найти совпадающие глобальные политики.
-2. Если эффективная политика запрещает отправку — вернуть `deny`.
-3. Найти пользовательскую настройку для типа и канала.
-4. Если настройка выключена — вернуть `deny`.
-5. Если тип транзакционный — вернуть `allow`.
-6. Получить quiet hours пользователя.
-7. Если момент находится внутри quiet hours — вернуть `deny`.
-8. Иначе вернуть `allow`.
-
-Стандартные причины:
-
-- `allowed`;
-- `disabled_by_preference`;
-- `blocked_by_quiet_hours`;
-- пользовательская причина глобальной политики, например `marketing_sms_blocked_in_eu`.
-
-### Идемпотентность
-
-Идемпотентность применяется к следующим операциям:
-
-- инициализация предпочтений;
-- изменение предпочтения;
-- сброс предпочтения;
-- создание или изменение quiet hours;
-- удаление quiet hours.
-
-Клиент передаёт заголовок:
-
-```http
-Idempotency-Key: <unique-command-key>
-```
-
-Область уникальности:
-
-```text
-userId + operation + idempotencyKey
-```
-
-Поведение:
-
-- одинаковый ключ и одинаковое тело возвращают сохранённый статус и ответ;
-- одинаковый ключ с другим телом возвращает `409 idempotency_key_conflict`;
-- незавершённая конкурентная операция возвращает `409 idempotency_operation_in_progress`;
-- при ошибке бизнес-операции processing-запись удаляется;
-- срок хранения записи — 7 дней.
-
-Ответ содержит заголовок:
-
-```http
-Idempotency-Replayed: false
-```
-
-При повторном запросе:
-
-```http
-Idempotency-Replayed: true
-```
-
----
-
-## Переменные окружения
-
-Приложение загружает файл `.env.${NODE_ENV}`. При отсутствии `NODE_ENV` для выбора файла используется `development`.
-
-| Переменная          | Обязательна | Допустимые значения / формат                                 | Назначение                                                     |
-| ------------------- | ----------: | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| `NODE_ENV`          |          да | `development`, `test`, `production`                          | Режим приложения                                               |
-| `PORT`              |          да | `1..65535`                                                   | Внутренний HTTP-порт приложения                                |
-| `LOG_LEVEL`         |         нет | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent` | Уровень логирования, по умолчанию `info`                       |
-| `LOG_PRETTY`        |         нет | `true`, `false`                                              | Форматирование логов через `pino-pretty` в development         |
-| `CORS_ORIGINS`      |          да | URL через запятую либо `*`                                   | Разрешённые origins в production                               |
-| `TRUST_PROXY`       |          да | `true`, `false`                                              | Настройка Express `trust proxy`                                |
-| `POSTGRES_USER`     |          да | непустая строка                                              | Пользователь PostgreSQL                                        |
-| `POSTGRES_PASSWORD` |          да | непустая строка                                              | Пароль PostgreSQL                                              |
-| `POSTGRES_DB`       |          да | непустая строка                                              | Имя базы данных                                                |
-| `POSTGRES_PORT`     |          да | `1..65535`                                                   | Порт PostgreSQL для Compose и seed-скрипта                     |
-| `DATABASE_URL`      |          да | PostgreSQL URL                                               | Строка подключения приложения и миграций                       |
-| `APP_PORT`          |         нет | TCP-порт                                                     | Только Docker Compose: внешний порт хоста, по умолчанию `3000` |
-
-Важно:
-
-- при локальном запуске приложения `DATABASE_URL` должен использовать `localhost` или `127.0.0.1`;
-- внутри Docker Compose `DATABASE_URL` должен использовать hostname `postgres` и внутренний порт `5432`;
-- `scripts/run-seed.ts` всегда подключается к `127.0.0.1:${POSTGRES_PORT}`.
-
----
+Домен зависит от портов и не импортирует Express или Drizzle.
 
 ## База данных
 
-Используются таблицы:
-
 | Таблица               | Назначение                                |
 | --------------------- | ----------------------------------------- |
-| `notification_types`  | Справочник типов уведомлений              |
-| `channels`            | Справочник каналов                        |
+| `channels`            | Каналы доставки                           |
+| `notification_types`  | Типы уведомлений                          |
 | `default_preferences` | Дефолтная матрица тип × канал             |
-| `user_preferences`    | Индивидуальные настройки пользователей    |
+| `user_preferences`    | Пользовательские настройки                |
 | `quiet_hours`         | Один интервал quiet hours на пользователя |
-| `global_policies`     | Глобальные политики                       |
-| `idempotency_records` | Состояние и ответы идемпотентных команд   |
+| `global_policies`     | Политики по типу, каналу и региону        |
+| `idempotency_records` | Состояние идемпотентных операций          |
 
 Основные ограничения:
 
 - уникальный `channels.code`;
 - уникальный `notification_types.code`;
-- уникальная комбинация дефолта `notification_type_id + channel_id`;
-- уникальная комбинация пользовательской настройки `user_id + notification_type_id + channel_id`;
+- уникальный дефолт `notification_type_id + channel_id`;
+- уникальная пользовательская настройка
+  `user_id + notification_type_id + channel_id`;
 - одна запись quiet hours на пользователя;
 - уникальная область глобальной политики с `NULLS NOT DISTINCT`;
-- уникальная область идемпотентности `user_id + operation + idempotency_key`.
+- уникальная область идемпотентности
+  `user_id + operation + idempotency_key`.
 
----
+Foreign keys для типов и каналов используют `ON DELETE RESTRICT` и
+`ON UPDATE CASCADE`.
 
 ## Миграции
 
-Миграции хранятся в директории `drizzle/`.
-
-Drizzle-конфигурация:
-
-```text
-drizzle.config.ts
-```
-
-Схема:
+Исходная Drizzle schema:
 
 ```text
 src/infra/database/drizzle/schema/
 ```
 
-### Создание миграции
+Сгенерированные миграции:
 
-После изменения Drizzle schema:
+```text
+drizzle/
+```
+
+Конфигурация Drizzle Kit:
+
+```text
+drizzle.config.ts
+```
+
+### Сгенерировать migration
 
 ```bash
 npm run db:generate
 ```
 
-Команда использует `.env.development` и создаёт SQL-миграцию в `drizzle/`.
+Команда использует `.env.development`.
 
-### Применение миграций локально
+### Применить development migrations с хоста
 
 ```bash
 npm run db:migrate
 ```
 
-Команда использует `.env.development`.
-
-### Применение production-миграций вне контейнера
-
-```bash
-npm run db:migrate:production
-```
-
-Команда использует `.env.production`.
-
-### Применение миграций в development-контейнере
+### Применить development migrations в app-контейнере
 
 ```bash
 npm run db:migrate:development:docker
 ```
 
-### Production Docker
+### Применить production migrations с хоста
 
-Production image запускает:
-
-```text
-node dist/migrate.js
+```bash
+npm run db:migrate:production
 ```
 
-через `scripts/docker-entrypoint.sh` до запуска HTTP-сервера. Поэтому `npm run prod:docker:up` автоматически применяет миграции.
+Этот сценарий предназначен для среды, где `DATABASE_URL` из `.env.production`
+доступен с хоста.
 
-Команда `db:migrate:production:docker` присутствует в `package.json`, но с текущим runner image не является основным способом миграции: production image устанавливает только production dependencies, а `drizzle-kit` находится в `devDependencies`. Для production Docker используется встроенный `dist/migrate.js`.
+### Миграции в Production Docker
+
+Production image не использует Drizzle Kit для старта. В bundle входит
+`dist/migrate.js`, который использует runtime package `drizzle-orm` и выполняется
+entrypoint-скриптом до запуска приложения.
+
+Команда `db:migrate:production:docker` присутствует в `package.json`, но в
+текущем состоянии не поддерживается:
+
+- она вызывает development-команду `db:migrate`;
+- runner image устанавливает зависимости через `npm ci --omit=dev`;
+- `drizzle-kit` находится в `devDependencies`;
+- runner image не содержит `drizzle.config.ts`.
+
+Для production Compose используйте автоматическую миграцию через
+`npm run prod:docker:up`.
 
 ### Drizzle Studio
 
@@ -568,13 +858,11 @@ node dist/migrate.js
 npm run db:studio
 ```
 
-Команда использует `.env.development`.
+Команда использует `.env.development` и требует доступную с хоста базу данных.
 
----
+## Тестовые данные
 
-## Сиды
-
-Тестовый сид:
+Seed-файл:
 
 ```text
 seeds/pg/test-data.seed.sql
@@ -586,475 +874,146 @@ seeds/pg/test-data.seed.sql
 npm run db:seed:test
 ```
 
-Сид создаёт или обновляет:
+Seed создаёт или обновляет:
 
-- типы `transactional` и `marketing`;
+- тип `transactional`;
+- тип `marketing`;
 - каналы `email`, `sms`, `push`;
 - шесть дефолтных предпочтений;
-- глобальную политику `marketing + sms + EU -> deny`.
+- политику `marketing + sms + EU -> deny`.
 
-Сид является повторяемым: справочники, дефолты и политика записываются через upsert.
+Дефолтная матрица:
 
-Seed runner:
+| Тип             |   Email |     SMS |    Push |
+| --------------- | ------: | ------: | ------: |
+| `transactional` |  `true` |  `true` |  `true` |
+| `marketing`     | `false` | `false` | `false` |
 
-```text
-scripts/run-seed.ts
-```
+Seed повторяем: справочники, дефолты и политика записываются через upsert.
 
-Подключение выполняется к:
+## Тестирование
 
-```text
-127.0.0.1:${POSTGRES_PORT}
-```
+Тесты используют PostgreSQL Testcontainer. Перед запуском должен быть доступен
+Docker daemon.
 
-Поэтому при использовании Docker PostgreSQL должен публиковать порт на хост.
-
----
-
-## API
-
-Базовый URL:
-
-```text
-http://localhost:3000
-```
-
-API не содержит аутентификации. Для production-доступа административные операции должны быть защищены внешним gateway или отдельным auth-слоем.
-
-### Swagger и OpenAPI
-
-Интерактивная документация:
-
-```text
-GET /docs
-```
-
-OpenAPI JSON:
-
-```text
-GET /openapi.json
-```
-
-OpenAPI JSON может использоваться для генерации клиента и типов, например через `openapi-typescript`, Orval или OpenAPI Generator.
-
-### Формат ошибок
-
-```json
-{
-  "code": "invalid_request",
-  "message": "Request validation failed",
-  "issues": []
-}
-```
-
-Для необработанной ошибки:
-
-```json
-{
-  "code": "internal_server_error",
-  "message": "Internal server error"
-}
-```
-
-### Системные маршруты
-
-| Метод | Путь            | Назначение                      |
-| ----- | --------------- | ------------------------------- |
-| `GET` | `/health`       | Проверка состояния HTTP-сервиса |
-| `GET` | `/docs`         | Swagger UI                      |
-| `GET` | `/openapi.json` | OpenAPI 3.1 документ            |
-
-### Каналы
-
-| Метод   | Путь                      | Назначение      |
-| ------- | ------------------------- | --------------- |
-| `GET`   | `/v1/channels`            | Получить каналы |
-| `POST`  | `/v1/channels`            | Создать канал   |
-| `PATCH` | `/v1/channels/:channelId` | Обновить канал  |
-
-Создание:
-
-```bash
-curl -X POST http://localhost:3000/v1/channels \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "code": "messenger",
-    "name": "Messenger"
-  }'
-```
-
-Обновление:
-
-```bash
-curl -X PATCH http://localhost:3000/v1/channels/<CHANNEL_UUID> \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "isActive": false
-  }'
-```
-
-Коды должны использовать lowercase snake_case.
-
-### Типы уведомлений
-
-| Метод   | Путь                                         | Назначение                |
-| ------- | -------------------------------------------- | ------------------------- |
-| `GET`   | `/v1/notification-types`                     | Получить типы уведомлений |
-| `POST`  | `/v1/notification-types`                     | Создать тип               |
-| `PATCH` | `/v1/notification-types/:notificationTypeId` | Обновить тип              |
-
-Создание:
-
-```bash
-curl -X POST http://localhost:3000/v1/notification-types \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "code": "security_alert",
-    "name": "Security alert",
-    "isTransactional": true
-  }'
-```
-
-### Глобальные политики
-
-| Метод    | Путь                            | Назначение                            |
-| -------- | ------------------------------- | ------------------------------------- |
-| `GET`    | `/v1/global-policies`           | Получить политики                     |
-| `POST`   | `/v1/global-policies`           | Создать или обновить политику области |
-| `DELETE` | `/v1/global-policies/:policyId` | Удалить политику                      |
-
-Создание региональной политики:
-
-```bash
-curl -X POST http://localhost:3000/v1/global-policies \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "notificationTypeId": "<NOTIFICATION_TYPE_UUID>",
-    "channelId": "<CHANNEL_UUID>",
-    "region": "EU",
-    "decision": "deny",
-    "reason": "marketing_sms_blocked_in_eu"
-  }'
-```
-
-Поля `notificationTypeId`, `channelId` и `region` могут быть `null` или отсутствовать.
-
-### Предпочтения пользователя
-
-| Метод   | Путь                                       | Идемпотентность | Назначение               |
-| ------- | ------------------------------------------ | --------------: | ------------------------ |
-| `POST`  | `/v1/users/:userId/preferences/initialize` |              да | Инициализировать дефолты |
-| `GET`   | `/v1/users/:userId/preferences`            |             нет | Получить предпочтения    |
-| `PATCH` | `/v1/users/:userId/preferences`            |              да | Изменить одну настройку  |
-| `POST`  | `/v1/users/:userId/preferences/reset`      |              да | Сбросить одну настройку  |
-
-Инициализация пользователя:
-
-```bash
-curl -i -X POST \
-  http://localhost:3000/v1/users/user-1/preferences/initialize \
-  -H 'Idempotency-Key: initialize-user-1'
-```
-
-Получение предпочтений:
-
-```bash
-curl http://localhost:3000/v1/users/user-1/preferences
-```
-
-Пример ответа:
-
-```json
-{
-  "data": [
-    {
-      "id": "7e21b123-1599-4b21-b318-4fbcefa43156",
-      "userId": "user-1",
-      "notificationTypeId": "8d15ebf6-20fb-4fe9-a780-ea9dfe557ca7",
-      "notificationTypeCode": "marketing",
-      "notificationTypeName": "Marketing",
-      "isTransactional": false,
-      "channelId": "315c1076-1b59-49a8-b28c-4109e73198b2",
-      "channelCode": "email",
-      "enabled": false,
-      "createdAt": "2026-06-19T10:00:00.000Z",
-      "updatedAt": "2026-06-19T10:00:00.000Z"
-    }
-  ]
-}
-```
-
-Изменение предпочтения:
-
-```bash
-curl -i -X PATCH \
-  http://localhost:3000/v1/users/user-1/preferences \
-  -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: enable-marketing-email-user-1' \
-  -d '{
-    "notificationTypeId": "<MARKETING_UUID>",
-    "channelId": "<EMAIL_UUID>",
-    "enabled": true
-  }'
-```
-
-Сброс к дефолту:
-
-```bash
-curl -i -X POST \
-  http://localhost:3000/v1/users/user-1/preferences/reset \
-  -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: reset-marketing-email-user-1' \
-  -d '{
-    "notificationTypeId": "<MARKETING_UUID>",
-    "channelId": "<EMAIL_UUID>"
-  }'
-```
-
-### Quiet hours
-
-| Метод    | Путь                            | Идемпотентность | Назначение           |
-| -------- | ------------------------------- | --------------: | -------------------- |
-| `GET`    | `/v1/users/:userId/quiet-hours` |             нет | Получить quiet hours |
-| `PATCH`  | `/v1/users/:userId/quiet-hours` |              да | Создать или обновить |
-| `DELETE` | `/v1/users/:userId/quiet-hours` |              да | Удалить              |
-
-Создание или обновление:
-
-```bash
-curl -i -X PATCH \
-  http://localhost:3000/v1/users/user-1/quiet-hours \
-  -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: set-quiet-hours-user-1-v1' \
-  -d '{
-    "startTime": "22:00:00",
-    "endTime": "08:00:00",
-    "timezone": "Asia/Tbilisi"
-  }'
-```
-
-Удаление:
-
-```bash
-curl -i -X DELETE \
-  http://localhost:3000/v1/users/user-1/quiet-hours \
-  -H 'Idempotency-Key: delete-quiet-hours-user-1'
-```
-
-### Проверка возможности отправки
-
-| Метод  | Путь           | Назначение                        |
-| ------ | -------------- | --------------------------------- |
-| `POST` | `/v1/evaluate` | Получить решение `allow` / `deny` |
-
-API использует UUID типа уведомления и канала. Их можно получить через:
-
-```text
-GET /v1/notification-types
-GET /v1/channels
-```
-
-Запрос:
-
-```bash
-curl -X POST http://localhost:3000/v1/evaluate \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "userId": "user-1",
-    "notificationTypeId": "<MARKETING_UUID>",
-    "channelId": "<SMS_UUID>",
-    "region": "EU",
-    "datetime": "2026-05-21T21:30:00.000Z"
-  }'
-```
-
-Ответ:
-
-```json
-{
-  "decision": "deny",
-  "reasons": ["marketing_sms_blocked_in_eu"]
-}
-```
-
----
-
-## Тесты
-
-Интеграционные тесты используют:
-
-- Vitest;
-- Testcontainers;
-- PostgreSQL 17;
-- реальные Drizzle-репозитории;
-- реальные SQL-миграции;
-- тестовый SQL-сид.
-
-Для запуска необходим работающий Docker daemon.
-
-Все тесты:
+### Все тесты
 
 ```bash
 npm test
 ```
 
-Только интеграционные тесты:
+### Только integration suite
 
 ```bash
 npm run test:integration
 ```
 
-Watch mode:
+### Watch mode
 
 ```bash
 npm run test:watch
 ```
 
-Тесты выполняются последовательно (`fileParallelism: false`), поскольку используют общий PostgreSQL container и сбрасывают таблицы перед каждым сценарием.
+Текущие интеграционные сценарии проверяют:
 
-Покрытые сценарии:
+- инициализацию пользователя дефолтами;
+- изменение одного предпочтения без изменения остальных;
+- блокировку нетранзакционных уведомлений в quiet hours;
+- обход quiet hours транзакционными уведомлениями;
+- приоритет региональной глобальной политики;
+- replay идемпотентной команды без повторного выполнения handler.
 
-1. Новый пользователь получает шесть дефолтных предпочтений.
-2. Изменение одной настройки не изменяет остальные.
-3. Quiet hours блокируют маркетинговые уведомления и не блокируют транзакционные.
-4. Региональная глобальная политика имеет приоритет перед пользовательской настройкой.
-5. Повторная идемпотентная команда возвращает сохранённый результат и не выполняет обработчик второй раз.
+## Команды проекта
 
----
+### Приложение и сборка
 
-## Логирование и observability
+| Команда         | Назначение                                                          |
+| --------------- | ------------------------------------------------------------------- |
+| `npm run dev`   | Запустить `tsx watch src/main.ts`                                   |
+| `npm run build` | Собрать `src/main.ts` и `src/migrate.ts` в `dist/` через tsup       |
+| `npm start`     | Запустить `node dist/main.js`; предварительно нужен `npm run build` |
 
-Используется структурированное логирование Pino.
+### Проверки качества
 
-Логируются:
+| Команда                  | Назначение                                                       |
+| ------------------------ | ---------------------------------------------------------------- |
+| `npm run typecheck`      | Проверить production и test TypeScript configs                   |
+| `npm run typecheck:src`  | Проверить `src/**/*.ts`                                          |
+| `npm run typecheck:test` | Проверить `src`, `tests` и Vitest config                         |
+| `npm run lint`           | Запустить ESLint без изменений                                   |
+| `npm run lint:fix`       | Исправить поддерживаемые ESLint-ошибки                           |
+| `npm run format`         | Отформатировать проект Prettier                                  |
+| `npm run format:check`   | Проверить форматирование без изменений                           |
+| `npm run prepare`        | Установить Husky hooks; npm вызывает автоматически после install |
 
-- входящие HTTP-запросы;
-- HTTP-статусы и продолжительность;
-- инициализация предпочтений;
-- изменение и сброс предпочтений;
-- создание, изменение и удаление quiet hours;
-- решения `allow` / `deny`;
-- ошибки PostgreSQL pool;
-- необработанные HTTP-ошибки.
+### Development Docker
 
-Для каждого HTTP-запроса:
+| Команда                    | Назначение                                                |
+| -------------------------- | --------------------------------------------------------- |
+| `npm run dev:docker:up`    | Собрать и запустить app + PostgreSQL в foreground         |
+| `npm run dev:docker:down`  | Остановить development Compose без удаления named volume  |
+| `npm run dev:docker:renew` | Пересобрать сервисы и пересоздать anonymous volumes       |
+| `npm run docker-reset`     | Полностью удалить development Compose и связанные ресурсы |
 
-- используется входящий `x-request-id`, если он передан;
-- иначе генерируется UUID;
-- `x-request-id` возвращается в ответе.
+`dev:docker:renew` не удаляет named volume PostgreSQL. Для сброса данных
+используйте `npm run docker-reset`.
 
-Уровни HTTP-логов:
+### Production Docker
 
-- `info` — успешные ответы;
-- `warn` — ответы `4xx`;
-- `error` — ошибки `5xx`.
+| Команда                     | Назначение                                              |
+| --------------------------- | ------------------------------------------------------- |
+| `npm run prod:docker:up`    | Собрать и запустить production Compose в detached mode  |
+| `npm run prod:docker:down`  | Остановить production Compose без удаления named volume |
+| `npm run prod:docker:renew` | Пересобрать сервисы и пересоздать anonymous volumes     |
 
-Чувствительные поля `authorization`, `password`, `token`, `accessToken` и `refreshToken` редактируются как `[REDACTED]`.
+`prod:docker:renew` также не удаляет named volume PostgreSQL.
 
----
+### Команды базы данных
 
-## Docker
+| Команда                                 | Назначение                                                    |
+| --------------------------------------- | ------------------------------------------------------------- |
+| `npm run db:generate`                   | Сгенерировать development migration                           |
+| `npm run db:migrate`                    | Применить migrations с `.env.development`                     |
+| `npm run db:migrate:development:docker` | Применить migrations внутри development app container         |
+| `npm run db:migrate:production`         | Применить migrations с `.env.production` с хоста              |
+| `npm run db:migrate:production:docker`  | Не поддерживается текущим runner image; см. раздел «Миграции» |
+| `npm run db:studio`                     | Запустить Drizzle Studio                                      |
+| `npm run db:seed:test`                  | Выполнить тестовый PostgreSQL seed с хоста                    |
 
-### Development
+### Тесты и служебные команды
 
-```bash
-npm run dev:docker:up
-```
+| Команда                        | Назначение                                                                  |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| `npm test`                     | Однократно выполнить все Vitest tests                                       |
+| `npm run test:watch`           | Запустить Vitest в watch mode                                               |
+| `npm run test:integration`     | Выполнить `tests/integration`                                               |
+| `npm run source-code:generate` | Собрать tracked и untracked source files в `project_whole_code_source.json` |
 
-Используется:
+`source-code:generate` требует Git и исключает файлы, игнорируемые через
+`.gitignore`.
 
-```text
-compose.development.yaml
-```
+## Git hooks
 
-Особенности:
-
-- source code монтируется в `/app`;
-- `node_modules` хранится в отдельном anonymous volume;
-- приложение запускается через `npm run dev`;
-- PostgreSQL доступен с хоста через `127.0.0.1:${POSTGRES_PORT}`.
-
-### Production
-
-Создать `.env.production`, затем:
-
-```bash
-npm run prod:docker:up
-```
-
-Используется multi-stage image:
-
-- `dependencies`;
-- `builder`;
-- `runner`.
-
-Runner:
-
-- запускается от пользователя `node`;
-- содержит только production dependencies;
-- автоматически применяет миграции;
-- запускает `node dist/main.js`.
-
-Остановка:
-
-```bash
-npm run prod:docker:down
-```
-
----
-
-## npm scripts
-
-| Команда                                 | Назначение                                                                                                       |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                           | Запустить `src/main.ts` через `tsx watch`                                                                        |
-| `npm run build`                         | Собрать `src/main.ts` и `src/migrate.ts` через tsup                                                              |
-| `npm start`                             | Запустить `dist/main.js`                                                                                         |
-| `npm run typecheck`                     | Проверить типы source и test code                                                                                |
-| `npm run typecheck:src`                 | Проверить `src/**/*.ts`                                                                                          |
-| `npm run typecheck:test`                | Проверить `src`, `tests` и Vitest config                                                                         |
-| `npm run prepare`                       | Установить Husky hooks; автоматически вызывается npm                                                             |
-| `npm run lint`                          | Проверить проект ESLint                                                                                          |
-| `npm run lint:fix`                      | Исправить поддерживаемые ESLint-ошибки                                                                           |
-| `npm run format`                        | Отформатировать проект Prettier                                                                                  |
-| `npm run format:check`                  | Проверить форматирование без изменения файлов                                                                    |
-| `npm run dev:docker:up`                 | Собрать и запустить development Compose в foreground                                                             |
-| `npm run dev:docker:down`               | Остановить development Compose                                                                                   |
-| `npm run dev:docker:renew`              | Пересобрать development Compose и обновить anonymous volumes                                                     |
-| `npm run prod:docker:up`                | Собрать и запустить production Compose в detached mode                                                           |
-| `npm run prod:docker:down`              | Остановить production Compose                                                                                    |
-| `npm run prod:docker:renew`             | Пересобрать production Compose и обновить anonymous volumes                                                      |
-| `npm run db:seed:test`                  | Выполнить `seeds/pg/test-data.seed.sql`                                                                          |
-| `npm run db:generate`                   | Сгенерировать development-миграцию Drizzle                                                                       |
-| `npm run db:migrate`                    | Применить миграции с `.env.development`                                                                          |
-| `npm run db:studio`                     | Запустить Drizzle Studio с `.env.development`                                                                    |
-| `npm run db:migrate:production`         | Применить миграции с `.env.production`                                                                           |
-| `npm run db:migrate:production:docker`  | Выполнить migration script внутри production app container; не является основным путём для текущего runner image |
-| `npm run db:migrate:development:docker` | Выполнить development migration script внутри app container                                                      |
-| `npm run source-code:generate`          | Сформировать агрегированный JSON со snapshot исходного кода                                                      |
-| `npm test`                              | Однократно выполнить все Vitest tests                                                                            |
-| `npm run test:watch`                    | Запустить Vitest в watch mode                                                                                    |
-| `npm run test:integration`              | Выполнить только `tests/integration`                                                                             |
-
-### Git hooks
-
-`pre-commit`:
+### pre-commit
 
 ```text
-lint-staged
+npx lint-staged
 ```
 
-`pre-push`:
+Для изменённых TypeScript-файлов выполняются ESLint fix и Prettier. Для JSON,
+Markdown и YAML выполняется Prettier.
+
+### pre-push
 
 ```text
-typecheck
-lint
-build
+npm run typecheck
+npm run lint
+npm run build
 ```
 
----
+Тесты и `format:check` автоматически в pre-push не запускаются.
 
-## Проверка перед отправкой решения
+Рекомендуемая полная локальная проверка перед push:
 
 ```bash
 npm run typecheck
@@ -1064,61 +1023,166 @@ npm run build
 npm test
 ```
 
-Для ручной проверки API:
+## Полный сброс Docker
+
+Команда:
 
 ```bash
+npm run docker-reset
+```
+
+Скрипт выполняет destructive reset:
+
+- останавливает development Compose;
+- удаляет Compose containers;
+- удаляет named и anonymous volumes;
+- удаляет orphan containers;
+- удаляет images, используемые development Compose;
+- дополнительно удаляет контейнеры, volumes и networks с именами проекта.
+
+После сброса данные PostgreSQL восстановить нельзя.
+
+Повторный запуск для локального режима:
+
+```bash
+docker compose \
+  --env-file .env.development \
+  -f compose.development.yaml \
+  up -d postgres
+
 npm run db:migrate
 npm run db:seed:test
 npm run dev
 ```
 
-После этого открыть:
+Повторный запуск полностью в Docker:
 
-```text
-http://localhost:3000/docs
+```bash
+npm run dev:docker:up
 ```
 
----
+В другом терминале:
 
-## Ограничения текущей реализации
+```bash
+npm run db:migrate:development:docker
+npm run db:seed:test
+```
 
-- отсутствуют аутентификация и авторизация административных маршрутов;
-- `userId` не проверяется через внешний User Service;
-- нет отдельного API управления `default_preferences`;
-- нет фоновой очистки истёкших idempotency records;
-- health endpoint проверяет HTTP-процесс, но не выполняет readiness-проверку PostgreSQL;
-- нет rate limiting;
-- нет метрик Prometheus и distributed tracing;
-- миграции production-контейнера выполняются при старте приложения, а не отдельным deployment job;
-- отсутствует кэширование результатов оценки;
-- отсутствует аудит административных изменений каналов, типов и глобальных политик.
+Скрипт написан для POSIX shell. В Windows используйте WSL или совместимую shell
+среду.
 
----
+## Диагностика
 
-## Что добавить для production
+### PostgreSQL не принимает соединение
 
-1. Аутентификацию service-to-service и RBAC для административных маршрутов.
-2. Отдельные liveness и readiness endpoints с проверкой PostgreSQL.
-3. Метрики:
-   - количество `allow` / `deny`;
-   - причины отказов;
-   - latency `/v1/evaluate`;
-   - количество idempotency replay/conflict;
-   - ошибки PostgreSQL.
-4. OpenTelemetry traces и корреляцию с `x-request-id`.
-5. Периодическую очистку истёкших `idempotency_records`.
-6. Rate limiting и request quotas.
-7. Audit log для глобальных политик и пользовательских изменений.
-8. Отдельный deployment job для миграций.
-9. Transaction boundaries для составных операций.
-10. Контрактные и HTTP end-to-end тесты.
-11. Версионирование и правила совместимости OpenAPI.
-12. Кэширование справочников и глобальных политик с контролируемой инвалидацией.
-13. Secret manager вместо файловых production env.
-14. Ограничение доступа к Swagger UI в production.
-15. Политику хранения и удаления пользовательских настроек.
+Проверьте состояние:
 
----
+```bash
+docker compose \
+  --env-file .env.development \
+  -f compose.development.yaml \
+  ps
+```
+
+Проверьте логи:
+
+```bash
+docker compose \
+  --env-file .env.development \
+  -f compose.development.yaml \
+  logs postgres
+```
+
+Убедитесь, что `POSTGRES_PORT` совпадает с портом в `DATABASE_URL` при запуске
+приложения на хосте.
+
+### `getaddrinfo ENOTFOUND postgres`
+
+`postgres` является hostname только внутри Compose network. При локальном
+запуске приложения используйте:
+
+```dotenv
+DATABASE_URL=postgres://notification_service:notification_service@127.0.0.1:5433/notification_preferences
+```
+
+### `ECONNREFUSED 127.0.0.1:5433`
+
+Проверьте:
+
+- запущен ли контейнер PostgreSQL;
+- опубликован ли порт `5433`;
+- установлено ли `POSTGRES_PORT=5433`;
+- использует ли `DATABASE_URL` тот же порт.
+
+### `relation ... does not exist`
+
+Миграции не применены.
+
+Для локального запуска:
+
+```bash
+npm run db:migrate
+```
+
+Для development Compose:
+
+```bash
+npm run db:migrate:development:docker
+```
+
+### Seed не подключается к PostgreSQL
+
+Seed runner всегда использует `127.0.0.1:${POSTGRES_PORT}` и не использует
+hostname из `DATABASE_URL`.
+
+Проверьте, что PostgreSQL опубликован на хосте и `POSTGRES_PORT` соответствует
+Compose mapping.
+
+### App-контейнер доступен не на том порте
+
+В Compose:
+
+- `PORT=3000` — внутренний порт процесса;
+- `APP_PORT` — внешний порт хоста.
+
+Например:
+
+```dotenv
+PORT=3000
+APP_PORT=8080
+```
+
+Тогда приложение доступно на `http://localhost:8080`.
+
+### Production container перезапускается
+
+Посмотрите логи:
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f compose.production.yaml \
+  logs app
+```
+
+Production entrypoint завершает контейнер при ошибке миграции, потому что
+использует `set -eu`.
+
+## Текущие ограничения
+
+- отсутствуют authentication и authorization;
+- административные маршруты публичны;
+- `userId` не валидируется через внешний User Service;
+- нет API управления `default_preferences`;
+- нет фоновой очистки истёкших `idempotency_records`;
+- `/health` не проверяет PostgreSQL;
+- отсутствуют rate limiting, metrics и distributed tracing;
+- отсутствует audit log административных изменений;
+- production migrations выполняются при старте app container, а не отдельным
+  deployment job;
+- отсутствует кэширование справочников и политик;
+- Swagger UI не ограничен в production;
+- integration suite тестирует сервисный слой, но не полный HTTP contract.
 
 ## License
 
