@@ -1,0 +1,1 @@
+export const OPENAPI_DOCUMENT_TOKEN = Symbol.for('OPENAPI_DOCUMENT_TOKEN')
