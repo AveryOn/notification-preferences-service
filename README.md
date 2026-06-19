@@ -38,6 +38,9 @@ LOG_PRETTY=true
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 TRUST_PROXY=false
 
+SWAGGER_URL="/docs"
+SWAGGER_JSON_URL="/docs/json"
+
 POSTGRES_USER=notification_service
 POSTGRES_PASSWORD=notification_service
 POSTGRES_DB=notification_preferences
@@ -105,6 +108,9 @@ LOG_LEVEL=debug
 LOG_PRETTY=true
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 TRUST_PROXY=false
+
+SWAGGER_URL="/docs"
+SWAGGER_JSON_URL="/docs/json"
 
 SWAGGER_URL="/docs"
 SWAGGER_JSON_URL="/docs/json"
