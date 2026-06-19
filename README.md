@@ -1,5 +1,7 @@
 # Notification Preferences Service
 
+[Quick Start](./getting_started.md)
+
 Notification Preferences Service — backend-сервис для хранения настроек
 уведомлений и принятия решения о допустимости отправки уведомления конкретному
 пользователю.
