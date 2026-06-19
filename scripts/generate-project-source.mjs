@@ -3,7 +3,7 @@ import { readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const rootDirectory = process.cwd()
-const outputFileName = 'project_whole_code_source.jsin'
+const outputFileName = 'project_whole_code_source.json'
 const outputFilePath = path.resolve(rootDirectory, outputFileName)
 
 function getRepositoryFiles() {
