@@ -12,6 +12,7 @@ import { QuietHoursController } from '~/modules/v1/quiet-hours/infra/http/quiet-
 import { PreferencesController } from '~/modules/v1/preferences/infra/http/preferences.controller'
 import { GlobalPoliciesController } from '~/modules/v1/global-policies/infra/http/global-policies.controller'
 import { NotificationTypesController } from '~/modules/v1/notification-types/infra/http/notification-types.controller'
+import { ChannelsController } from '~/modules/v1/channels/infra/http/channels.controller'
 
 type Environment = typeof env
 
@@ -32,7 +33,10 @@ export class HttpServer {
     private readonly globalPoliciesController: GlobalPoliciesController,
 
     @Inject(NotificationTypesController)
-    private readonly notificationTypesController: NotificationTypesController
+    private readonly notificationTypesController: NotificationTypesController,
+
+    @Inject(ChannelsController)
+    private readonly channelsController: ChannelsController
   ) {
     this.app = express()
     this.configure()
@@ -75,6 +79,7 @@ export class HttpServer {
     this.app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 
     this.quietHoursController.register(this.app)
+    this.channelsController.register(this.app)
     this.preferencesController.register(this.app)
     this.globalPoliciesController.register(this.app)
     this.notificationTypesController.register(this.app)
