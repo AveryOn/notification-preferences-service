@@ -13,6 +13,7 @@ import { preferencesProviders } from '~/modules/v1/preferences/preferences.modul
 import { quietHoursProviders } from '~/modules/v1/quiet-hours/quiet-hours.module'
 import { globalPoliciesProviders } from '~/modules/v1/global-policies/global-policies.module'
 import { idempotencyProviders } from '~/modules/v1/idempotency/idempotency.module'
+import { notificationTypesProviders } from '~/modules/v1/notification-types/notification-types.module'
 
 export const appProviders: DiProvider[] = [
   { token: ENV_TOKEN, useValue: env },
@@ -22,5 +23,6 @@ export const appProviders: DiProvider[] = [
   ...preferencesProviders,
   ...globalPoliciesProviders,
   ...idempotencyProviders,
+  ...notificationTypesProviders,
   { token: HTTP_SERVER_TOKEN, useClass: HttpServer }
 ]
