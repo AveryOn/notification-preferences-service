@@ -9,14 +9,14 @@ import {
   ChannelCodeConflictError,
   ChannelNotFoundError
 } from '~/modules/v1/channels/domain/channels.types'
-import { ChannelsRepositoryPort } from '~/modules/v1/channels/ports/channels.repo.port'
+import { ChannelsRepoPort } from '~/modules/v1/channels/ports/channels.repo.port'
 import { ChannelsServicePort } from '~/modules/v1/channels/ports/channels.service.port'
 
 @Injectable()
 export class ChannelsService extends ChannelsServicePort {
   constructor(
-    @Inject(ChannelsRepositoryPort)
-    private readonly repository: ChannelsRepositoryPort
+    @Inject(ChannelsRepoPort)
+    private readonly repository: ChannelsRepoPort
   ) {
     super()
   }

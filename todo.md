@@ -44,8 +44,6 @@
   <!-- - import aliases -->
   <!-- - Docker окружение -->
 
-- окружения тестирование под Vitest
-
 ## Express Server:
 
 <!-- - настроить CORS с учетом окружения (dev | prod) -->

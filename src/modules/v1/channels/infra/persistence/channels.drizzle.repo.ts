@@ -9,10 +9,10 @@ import { eq } from 'drizzle-orm'
 import { Inject, Injectable } from '~/core/di'
 import { channelsTable } from '~/infra/database/drizzle/schema/channels.table'
 import { DatabasePort } from '~/infra/database/ports/database.port'
-import { ChannelsRepositoryPort } from '~/modules/v1/channels/ports/channels.repo.port'
+import { ChannelsRepoPort } from '~/modules/v1/channels/ports/channels.repo.port'
 
 @Injectable()
-export class ChannelsDrizzleRepository extends ChannelsRepositoryPort {
+export class ChannelsDrizzleRepo extends ChannelsRepoPort {
   constructor(
     @Inject(DatabasePort)
     private readonly database: DatabasePort<Database>
