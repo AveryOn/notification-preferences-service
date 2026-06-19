@@ -35,14 +35,17 @@ const envSchema = z.object({
             return true
           }
 
-          return z.string().url().safeParse(normalizedOrigin).success
+          return z.url().safeParse(normalizedOrigin).success
         }),
       'CORS_ORIGINS must contain valid comma-separated URLs or *'
     ),
 
   TRUST_PROXY: z
     .enum(['true', 'false'])
-    .transform((value) => value === 'true')
+    .transform((value) => value === 'true'),
+
+  SWAGGER_URL: z.string().trim().startsWith('/').default('/docs'),
+  SWAGGER_JSON_URL: z.string().trim().startsWith('/').default('/docs/json')
 })
 
 const result = envSchema.safeParse(process.env)

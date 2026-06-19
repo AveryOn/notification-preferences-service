@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express'
 
 import { Inject, Injectable } from '~/core/di'
 import { OPENAPI_DOCUMENT_TOKEN } from '~/infra/openapi/openapi.tokens'
+import { env } from '~/env'
 
 @Injectable()
 export class OpenApiController {
@@ -27,9 +28,9 @@ export class OpenApiController {
   }
 
   register(app: Express): void {
-    app.get('/docs/json', this.getDocument)
+    app.get(env.SWAGGER_JSON_URL, this.getDocument)
     app.use(
-      '/docs',
+      env.SWAGGER_URL,
       this.setSwaggerContentSecurityPolicy,
       ...swaggerUi.serve,
       this.swaggerUiHandler
