@@ -1,15 +1,17 @@
+import type { env } from '~/env'
+import type { Server } from 'node:http'
+import type { LoggerPort } from '~/shared/logger/logger.port'
+
 import cors from 'cors'
 import express, { type Express } from 'express'
 import helmet from 'helmet'
-import type { Server } from 'node:http'
 import { ENV_TOKEN, LOGGER_TOKEN } from '~/core/app/app.tokens'
-import type { env } from '~/env'
 import { Inject, Injectable } from '~/core/di/di.container'
 import { httpLoggerMiddleware } from '~/infra/transport/http/http-logger.middleware'
-import type { LoggerPort } from '~/shared/logger/logger.port'
 import { QuietHoursController } from '~/modules/v1/quiet-hours/infra/http/quiet-hours.controller'
 import { PreferencesController } from '~/modules/v1/preferences/infra/http/preferences.controller'
 import { GlobalPoliciesController } from '~/modules/v1/global-policies/infra/http/global-policies.controller'
+import { NotificationTypesController } from '~/modules/v1/notification-types/infra/http/notification-types.controller'
 
 type Environment = typeof env
 
@@ -22,10 +24,15 @@ export class HttpServer {
     @Inject(LOGGER_TOKEN) private readonly logger: LoggerPort,
     @Inject(QuietHoursController)
     private readonly quietHoursController: QuietHoursController,
+
     @Inject(PreferencesController)
     private readonly preferencesController: PreferencesController,
+
     @Inject(GlobalPoliciesController)
-    private readonly globalPoliciesController: GlobalPoliciesController
+    private readonly globalPoliciesController: GlobalPoliciesController,
+
+    @Inject(NotificationTypesController)
+    private readonly notificationTypesController: NotificationTypesController
   ) {
     this.app = express()
     this.configure()
@@ -70,6 +77,7 @@ export class HttpServer {
     this.quietHoursController.register(this.app)
     this.preferencesController.register(this.app)
     this.globalPoliciesController.register(this.app)
+    this.notificationTypesController.register(this.app)
 
     this.app.get('/health', (_request, response) => {
       response.status(200).json({ status: 'ok' })
