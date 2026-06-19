@@ -41,9 +41,6 @@ env.production
 .vitest/
 test-results/
 
-# Drizzle
-
-drizzle/meta/_journal.json
 
 # IDE
 
